@@ -21,6 +21,13 @@ export const ENEMY_DEFINITIONS: Record<EnemyKind, EnemyDefinition> = {
     kind: 'wolf', name: 'Thorn Wolf', texture: 'enemy-wolf', hp: 48, speed: 96,
     damage: 15, xp: 9, scale: 1.4, bodyRadius: 9, firstWave: 5, color: 0xb8c8bb,
   },
+  spider: { kind: 'spider', name: 'Gloom Spider', texture: 'enemy-spider', hp: 46, speed: 82, damage: 11, xp: 10, scale: 1.28, bodyRadius: 8, firstWave: 2, color: 0x9d72c5 },
+  zombie: { kind: 'zombie', name: 'Rotwalker', texture: 'enemy-zombie', hp: 92, speed: 43, damage: 17, xp: 15, scale: 1.42, bodyRadius: 10, firstWave: 3, color: 0x7eaa70 },
+  mushroom: { kind: 'mushroom', name: 'Sporecap', texture: 'enemy-mushroom', hp: 52, speed: 48, damage: 12, xp: 11, scale: 1.35, bodyRadius: 9, firstWave: 1, color: 0xd887ad },
+  plant: { kind: 'plant', name: 'Living Briar', texture: 'enemy-plant', hp: 78, speed: 24, damage: 16, xp: 15, scale: 1.4, bodyRadius: 10, firstWave: 4, color: 0x5fbd62 },
+  darkKnight: { kind: 'darkKnight', name: 'Dark Knight', texture: 'enemy-darkKnight', hp: 130, speed: 62, damage: 22, xp: 21, scale: 1.42, bodyRadius: 10, firstWave: 6, color: 0x66708d },
+  lizardman: { kind: 'lizardman', name: 'Scalehunter', texture: 'enemy-lizardman', hp: 86, speed: 84, damage: 18, xp: 17, scale: 1.38, bodyRadius: 9, firstWave: 4, color: 0x74b35c },
+  witch: { kind: 'witch', name: 'Blood Witch', texture: 'enemy-witch', hp: 68, speed: 76, damage: 18, xp: 19, scale: 1.38, bodyRadius: 9, firstWave: 6, color: 0xc26da5 },
 };
 
 export const ABILITY_DEFINITIONS: Record<AbilityId, AbilityDefinition> = {
@@ -75,14 +82,17 @@ export const STANDARD_ABILITY_IDS = (Object.keys(ABILITY_DEFINITIONS) as Ability
 export const ELITE_MODIFIERS: EliteModifier[] = ['Swift', 'Armored', 'Explosive', 'Vampiric', 'Frenzied'];
 
 export const getWaveEnemyWeights = (wave: number): Array<{ kind: EnemyKind; weight: number }> => {
-  if (wave === 1) return [{ kind: 'slime', weight: 1 }];
-  if (wave === 2) return [{ kind: 'slime', weight: 0.55 }, { kind: 'goblin', weight: 0.45 }];
-  if (wave === 3) return [{ kind: 'goblin', weight: 0.65 }, { kind: 'bat', weight: 0.35 }];
-  const available = (Object.keys(ENEMY_DEFINITIONS) as EnemyKind[]).filter(
-    (kind) => ENEMY_DEFINITIONS[kind].firstWave <= wave,
-  );
-  return available.map((kind) => {
-    const lateBias = kind === 'skeleton' || kind === 'wolf' ? 0.06 * Math.max(0, wave - 7) : 0;
-    return { kind, weight: 1 + lateBias };
-  });
+  const rosters: Record<number, EnemyKind[]> = {
+    1: ['slime', 'goblin', 'mushroom'],
+    2: ['bat', 'goblin', 'wolf', 'spider'],
+    3: ['skeleton', 'zombie', 'bat', 'mushroom'],
+    4: ['plant', 'mushroom', 'spider', 'lizardman', 'wolf'],
+    5: ['zombie', 'skeleton'],
+    6: ['darkKnight', 'witch', 'skeleton', 'zombie', 'lizardman'],
+    7: ['wolf', 'lizardman', 'spider', 'plant', 'zombie'],
+    8: ['darkKnight', 'witch', 'zombie', 'skeleton', 'lizardman', 'mushroom'],
+    9: Object.keys(ENEMY_DEFINITIONS) as EnemyKind[],
+    10: ['darkKnight', 'witch', 'zombie', 'skeleton', 'spider', 'lizardman'],
+  };
+  return (rosters[Math.min(10, Math.max(1, wave))] ?? rosters[9]).map((kind, index) => ({ kind, weight: 1 + (index % 3) * 0.15 }));
 };

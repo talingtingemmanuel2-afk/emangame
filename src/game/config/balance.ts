@@ -24,15 +24,15 @@ export const COMBAT = {
 } as const;
 
 export const WAVES = {
-  total: 20,
-  duration: 34,
-  bossAtSeconds: 25,
+  total: 10,
+  duration: 72,
+  bossAtSeconds: 58,
   restDuration: 4,
 } as const;
 
 export const XP = {
-  baseRequirement: 24,
-  growth: 1.24,
+  baseRequirement: 22,
+  growth: 1.18,
 } as const;
 
 export const COLORS = {

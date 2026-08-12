@@ -46,7 +46,7 @@ export class HUD {
     this.xpText = scene.add.text(0, 18, '0 / 24  ✦', this.smallStyle()).setOrigin(0.5);
     this.root.add([this.xpBack, this.xpFill, this.xpText]);
 
-    this.waveText = scene.add.text(0, 24, 'WAVE 1 / 20', { ...this.smallStyle(), fontFamily: 'Cinzel, serif', fontSize: '17px', color: '#fff0ac' }).setOrigin(1, 0);
+    this.waveText = scene.add.text(0, 24, 'WAVE 1 / 10', { ...this.smallStyle(), fontFamily: 'Cinzel, serif', fontSize: '17px', color: '#fff0ac' }).setOrigin(1, 0);
     this.timerText = scene.add.text(0, 48, '00:00', this.smallStyle()).setOrigin(1, 0);
     this.killsText = scene.add.text(0, 68, 'Kills  0', this.smallStyle()).setOrigin(1, 0);
     this.root.add([this.waveText, this.timerText, this.killsText]);
@@ -88,7 +88,7 @@ export class HUD {
     const signature = `${wave}:${seconds}:${kills}`;
     if (signature === this.lastRunSignature) return;
     this.lastRunSignature = signature;
-    this.waveText.setText(`WAVE ${wave} / 20`);
+    this.waveText.setText(`WAVE ${wave} / 10`);
     this.timerText.setText(`${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`);
     this.killsText.setText(`Kills  ${kills}`);
   }
@@ -104,10 +104,11 @@ export class HUD {
     this.dashFill.setFillStyle(remainingMs > 0 ? 0x426f68 : 0x4fcbb8, 0.92);
   }
 
-  setBoss(name: string, hp: number, maxHp: number, phase?: number): void {
+  setBoss(name: string, hp: number, maxHp: number, phase?: number, theme: 'normal' | 'corrupted' | 'fire' = 'normal'): void {
     this.bossGroup.setVisible(true);
     this.bossFill.displayWidth = 514 * Phaser.Math.Clamp(hp / maxHp, 0, 1);
     this.bossName.setText(name);
+    this.bossFill.setFillStyle(theme === 'corrupted' ? 0x52a84f : theme === 'fire' ? 0xe14e32 : 0xd25153, 1);
     this.bossPhase.setText(phase ? `PHASE ${phase}  •  ${Math.max(0, Math.ceil(hp)).toLocaleString()} HP` : `${Math.max(0, Math.ceil(hp)).toLocaleString()} HP`);
   }
 

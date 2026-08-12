@@ -23,7 +23,7 @@ npm run preview
 - Escape — pause or resume
 - Mouse / pointer — menus and level-up choices
 
-Weapons and abilities activate automatically. Defeat enemies, collect XP crystals, choose upgrades, break forest objects for supplies, defeat a miniboss in every wave, and overcome the Ancient Forest Dragon on Wave 20.
+Weapons and abilities activate automatically. Defeat enemies, collect XP crystals, choose upgrades, break forest objects for supplies, survive ten hard boss-driven waves, slay the Ancient Beast on Wave 5, and overcome the Ancient Forest Dragon on Wave 10.
 
 ## Protagonist sheet
 

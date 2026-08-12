@@ -1,7 +1,11 @@
 import type Phaser from 'phaser';
 
-export type EnemyKind = 'slime' | 'goblin' | 'bat' | 'skeleton' | 'wolf';
-export type BossKind = 'golem' | 'vampire' | 'dragon';
+export type EnemyKind =
+  | 'slime' | 'goblin' | 'bat' | 'skeleton' | 'wolf'
+  | 'spider' | 'zombie' | 'mushroom' | 'plant' | 'darkKnight' | 'lizardman' | 'witch';
+export type BossKind =
+  | 'golem' | 'vampire' | 'troll' | 'werewolf' | 'snake' | 'minotaur' | 'wyvern'
+  | 'ancientBeast' | 'dragon';
 export type FoeKind = EnemyKind | BossKind;
 export type EliteModifier = 'Swift' | 'Armored' | 'Explosive' | 'Vampiric' | 'Frenzied';
 

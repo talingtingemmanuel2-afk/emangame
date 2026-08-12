@@ -41,6 +41,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private invulnerableUntil = 0;
   private lastAfterimageAt = 0;
   private readonly buffs = new Map<ActiveBuff['kind'], ActiveBuff>();
+  private hinderedUntil = 0;
+  private hinderMultiplier = 1;
 
   constructor(scene: Phaser.Scene, x: number, y: number, host: PlayerHost) {
     super(scene, x, y, 'girl', 0);
@@ -88,7 +90,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       }
     } else {
       this.isDashing = false;
-      const speed = this.stats.speed * this.getBuffMultiplier('speed');
+      const speed = this.stats.speed * this.getBuffMultiplier('speed') * (time < this.hinderedUntil ? this.hinderMultiplier : 1);
       this.setVelocity(this.movement.x * speed, this.movement.y * speed);
       this.updateAnimation();
     }
@@ -147,6 +149,13 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.stats.maxHp += amount;
     this.stats.hp = Math.min(this.stats.maxHp, this.stats.hp + amount);
     this.host.onPlayerHealthChanged(this.stats.hp, this.stats.maxHp);
+  }
+
+  applyMovementSlow(multiplier: number, durationMs: number, time: number): void {
+    this.hinderMultiplier = time >= this.hinderedUntil ? multiplier : Math.min(this.hinderMultiplier, multiplier);
+    this.hinderedUntil = Math.max(this.hinderedUntil, time + durationMs);
+    this.setTint(0xbda4ff);
+    this.scene.time.delayedCall(durationMs, () => this.active && this.clearTint());
   }
 
   private beginDash(time: number): void {

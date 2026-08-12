@@ -16,9 +16,15 @@ export interface EnemyHost {
   floatingText(x: number, y: number, text: string, color: string, large?: boolean): void;
   playSfx(key: string, volume?: number): void;
   createDangerCircle(x: number, y: number, radius: number, delay: number, damage: number, color?: number): void;
+  applyPlayerSlow(multiplier: number, duration: number): void;
 }
 
 let nextEnemyId = 1;
+
+const ELITE_VARIANT_NAME: Partial<Record<EnemyKind, string>> = {
+  spider: 'Venomous Spider', zombie: 'Armored Zombie', mushroom: 'Elder Mushroom', plant: 'Corrupted Plant',
+  darkKnight: 'Blackguard Knight', lizardman: 'Alpha Lizardman', witch: 'Blood Witch',
+};
 
 export class EnemyActor extends Phaser.Physics.Arcade.Sprite {
   readonly enemyId = nextEnemyId++;
@@ -43,6 +49,7 @@ export class EnemyActor extends Phaser.Physics.Arcade.Sprite {
   private actionEndsAt = 0;
   private baseScale = 1;
   private phaseSeed = Math.random() * Math.PI * 2;
+  private revived = false;
 
   constructor(scene: Phaser.Scene) {
     super(scene, -100, -100, 'enemy-slime');
@@ -65,6 +72,7 @@ export class EnemyActor extends Phaser.Physics.Arcade.Sprite {
     this.elite = forcedElite || (wave >= 6 && Math.random() < Math.min(0.2, 0.018 + wave * 0.006));
     this.eliteModifier = this.elite ? Phaser.Utils.Array.GetRandom(ELITE_MODIFIERS) : null;
     if (this.elite) {
+      this.displayName = ELITE_VARIANT_NAME[kind] ?? `${this.eliteModifier} ${definition.name}`;
       this.maxHp = Math.round(this.maxHp * (this.eliteModifier === 'Armored' ? 3.2 : 2.25));
       this.damage = Math.round(this.damage * 1.35);
       this.xpValue = Math.round(this.xpValue * 2.4);
@@ -81,6 +89,7 @@ export class EnemyActor extends Phaser.Physics.Arcade.Sprite {
     this.aiState = 'pursue';
     this.actionEndsAt = 0;
     this.phaseSeed = Math.random() * Math.PI * 2;
+    this.revived = false;
 
     this.enableBody(true, x, y, true, true);
     this.setTexture(definition.texture).setScale(this.baseScale * (this.elite ? 1.28 : 1));
@@ -144,6 +153,75 @@ export class EnemyActor extends Phaser.Physics.Arcade.Sprite {
         this.updateWolf(time, speed, direction);
         break;
       }
+      case 'spider': {
+        const strafe = Math.sin(time * 0.003 + this.phaseSeed) * 0.48;
+        this.setVelocity((direction.x - direction.y * strafe) * speed, (direction.y + direction.x * strafe) * speed);
+        if (time >= this.nextActionAt) {
+          this.nextActionAt = time + Phaser.Math.Between(2100, 3300);
+          if (distance < 230) {
+            this.host.playSfx('web', 0.36);
+            this.host.createDangerCircle(player.x, player.y, 40, 620, this.damage * 0.65, 0x9e7bd1);
+            this.scene.time.delayedCall(620, () => this.active && this.host.applyPlayerSlow(0.7, 1300));
+          } else this.host.fireEnemyProjectile(this.x, this.y, player.x, player.y, { texture: 'projectile-blood', speed: 180, damage: this.damage * 0.7, scale: 0.55 });
+        }
+        break;
+      }
+      case 'zombie': {
+        this.setVelocity(direction.x * speed, direction.y * speed);
+        break;
+      }
+      case 'mushroom': {
+        this.setVelocity(direction.x * speed, direction.y * speed);
+        if (time >= this.nextActionAt && distance < 290) {
+          this.host.playSfx('spore', 0.3);
+          this.nextActionAt = time + 3400;
+          this.host.createDangerCircle(player.x, player.y, 74, 850, this.damage * 0.8, 0xa65ac0);
+          this.scene.time.delayedCall(850, () => this.active && this.host.applyPlayerSlow(0.82, 900));
+        }
+        break;
+      }
+      case 'plant': {
+        this.setVelocity(distance > 250 ? direction.x * speed : 0, distance > 250 ? direction.y * speed : 0);
+        if (time >= this.nextActionAt) {
+          this.nextActionAt = time + 2600;
+          const leadX = player.x + (player.body instanceof Phaser.Physics.Arcade.Body ? player.body.velocity.x * 0.38 : 0);
+          const leadY = player.y + (player.body instanceof Phaser.Physics.Arcade.Body ? player.body.velocity.y * 0.38 : 0);
+          this.host.createDangerCircle(leadX, leadY, 52, 920, this.damage, 0x52c16a);
+          this.scene.time.delayedCall(920, () => this.active && this.host.applyPlayerSlow(0.55, 1100));
+        }
+        break;
+      }
+      case 'darkKnight': {
+        this.setVelocity(direction.x * speed, direction.y * speed);
+        if (time >= this.nextActionAt) {
+          this.nextActionAt = time + 2300;
+          if (distance < 150) this.host.createDangerCircle(this.x, this.y, 105, 650, this.damage * 1.1, 0x58638f);
+          else this.host.fireEnemyProjectile(this.x, this.y, player.x, player.y, { texture: 'projectile-blood', speed: 245, damage: this.damage * 0.9, scale: 0.85 });
+        }
+        break;
+      }
+      case 'lizardman': {
+        const flank = Math.sin(time * 0.002 + this.phaseSeed) * 0.7;
+        this.setVelocity((direction.x - direction.y * flank) * speed, (direction.y + direction.x * flank) * speed);
+        if (time >= this.nextActionAt) {
+          this.nextActionAt = time + 2100;
+          this.host.createDangerCircle(player.x + direction.x * 24, player.y + direction.y * 24, 48, 520, this.damage, 0x9ac75f);
+        }
+        break;
+      }
+      case 'witch': {
+        if (distance < 190) this.setVelocity(-direction.x * speed, -direction.y * speed);
+        else if (distance > 360) this.setVelocity(direction.x * speed, direction.y * speed);
+        else this.setVelocity(-direction.y * speed * 0.5, direction.x * speed * 0.5);
+        if (time >= this.nextActionAt) {
+          this.nextActionAt = time + 1900;
+          this.host.fireEnemyProjectile(this.x, this.y, player.x, player.y, { texture: 'projectile-blood', speed: 210, damage: this.damage, spread: 0.12, count: this.elite ? 3 : 1, scale: 0.9 });
+          this.host.playSfx('curse', 0.32);
+          if (distance < 155) this.setPosition(this.x - direction.x * 145, this.y - direction.y * 145);
+          this.host.playSfx('teleport', 0.25);
+        }
+        break;
+      }
     }
 
     this.setFlipX(this.body instanceof Phaser.Physics.Arcade.Body && this.body.velocity.x < -4);
@@ -160,7 +238,7 @@ export class EnemyActor extends Phaser.Physics.Arcade.Sprite {
 
   takeDamage(amount: number, options: DamageOptions = {}): boolean {
     if (!this.active || this.hp <= 0) return false;
-    const adjusted = this.eliteModifier === 'Armored' ? amount * 0.72 : amount;
+    const adjusted = this.eliteModifier === 'Armored' ? amount * 0.72 : this.kind === 'darkKnight' ? amount * 0.82 : amount;
     this.hp -= adjusted;
     this.lastDamagedAt = sceneTime(this.scene);
     if (options.knockback && this.body instanceof Phaser.Physics.Arcade.Body && this.kind !== 'slime') {
@@ -226,6 +304,14 @@ export class EnemyActor extends Phaser.Physics.Arcade.Sprite {
   }
 
   private die(): void {
+    if (this.kind === 'zombie' && !this.revived && Math.random() < 0.36) {
+      this.revived = true;
+      this.hp = this.maxHp * 0.35;
+      this.setVelocity(0).setAlpha(0.2).setTint(0x7aff74);
+      this.host.burst(this.x, this.y, 0x79d86c, 18, 120);
+      this.scene.time.delayedCall(720, () => this.active && this.setAlpha(1).clearTint());
+      return;
+    }
     if (this.kind === 'slime' && this.maxHp > 80 && Math.random() < 0.25) {
       this.host.spawnEnemy('slime', this.x - 16, this.y + 8);
       this.host.spawnEnemy('slime', this.x + 16, this.y - 8);
@@ -233,6 +319,7 @@ export class EnemyActor extends Phaser.Physics.Arcade.Sprite {
     if (this.eliteModifier === 'Explosive') {
       this.host.createDangerCircle(this.x, this.y, 74, 500, Math.round(this.damage * 1.4), 0xffbf66);
     }
+    if (this.kind === 'mushroom' && Math.random() < 0.55) this.host.createDangerCircle(this.x, this.y, 78, 450, this.damage * 0.75, 0xb261b9);
     this.host.enemyDied(this);
   }
 

@@ -21,10 +21,10 @@ export class OverlayManager {
     this.audio = audio;
   }
 
-  showUpgrade(choices: UpgradeChoice[], onSelect: (choice: UpgradeChoice) => void): void {
+  showUpgrade(choices: UpgradeChoice[], onSelect: (choice: UpgradeChoice) => void, title = 'LEVEL UP', subtitle = 'Choose one blessing of the grove'): void {
     this.clear();
     const { width, height } = this.scene.scale;
-    const root = this.createBackdrop('LEVEL UP', 'Choose one blessing of the grove');
+    const root = this.createBackdrop(title, subtitle);
     const cardWidth = Math.min(280, width * 0.26);
     const cardHeight = Math.min(330, height * 0.49);
     const spacing = cardWidth + 24;
@@ -121,7 +121,7 @@ export class OverlayManager {
       ['Q', 'Dash with brief invulnerability'],
       ['AUTOMATIC MAGIC', 'Your abilities seek nearby enemies'],
       ['XP CRYSTALS', 'Level up and choose one of three blessings'],
-      ['20 WAVES', 'Defeat a miniboss each wave and the final dragon'],
+      ['10 HARD WAVES', 'Defeat each boss and survive two ancient dragons'],
     ];
     copy.forEach(([key, detail], index) => {
       const y = height * 0.35 + index * 50;
@@ -138,7 +138,7 @@ export class OverlayManager {
     const { width, height } = this.scene.scale;
     const seconds = Math.floor(stats.elapsedMs / 1000);
     const rows = [
-      ['WAVE', `${stats.wave} / 20`],
+      ['WAVE', `${stats.wave} / 10`],
       ['TIME', `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`],
       ['ENEMIES DEFEATED', stats.kills.toLocaleString()],
       ['FINAL LEVEL', `${stats.level}`],

@@ -19,6 +19,11 @@ export const SFX_KEYS = [
   'wolf',
   'dragon-roar',
   'fire',
+  'web',
+  'spore',
+  'curse',
+  'boss-charge',
+  'bone',
   'click',
 ] as const;
 
@@ -75,6 +80,11 @@ const SFX_ASSETS: Record<SfxKey, AudioAsset> = {
   wolf: { cacheKey: 'gg-sfx-wolf', filename: 'sfx-wolf.wav' },
   'dragon-roar': { cacheKey: 'gg-sfx-dragon-roar', filename: 'sfx-dragon-roar.wav' },
   fire: { cacheKey: 'gg-sfx-fire', filename: 'sfx-fire.wav' },
+  web: { cacheKey: 'gg-sfx-web', filename: 'sfx-bush.wav' },
+  spore: { cacheKey: 'gg-sfx-spore', filename: 'sfx-potion.wav' },
+  curse: { cacheKey: 'gg-sfx-curse', filename: 'sfx-teleport.wav' },
+  'boss-charge': { cacheKey: 'gg-sfx-boss-charge', filename: 'sfx-slam.wav' },
+  bone: { cacheKey: 'gg-sfx-bone', filename: 'sfx-rock.wav' },
   click: { cacheKey: 'gg-sfx-click', filename: 'sfx-click.wav' },
 };
 

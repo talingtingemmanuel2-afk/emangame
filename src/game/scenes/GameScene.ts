@@ -31,6 +31,7 @@ interface PickupDebugState {
   wave: number;
   enemies: number;
   bosses: number;
+  boss: { kind: BossKind; phase: number; hp: number; maxHp: number } | null;
   level: number;
   xp: number;
   abilities: string[];
@@ -70,11 +71,12 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
   private nextSpawnAt = 0;
   private minibossSpawned = false;
   private minibossDefeated = false;
-  private dragonSpawned = false;
   private transitionAt = 0;
   private currentBoss: BossActor | null = null;
   private spawnSerial = 0;
   private nextDebugWriteAt = 0;
+  private corruptionOverlay: Phaser.GameObjects.Rectangle | null = null;
+  private activeWarnings = 0;
 
   constructor() {
     super('GameScene');
@@ -145,6 +147,10 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
 
   damagePlayer(amount: number): void {
     this.player.takeDamage(amount, this.time.now);
+  }
+
+  applyPlayerSlow(multiplier: number, duration: number): void {
+    this.player.applyMovementSlow(multiplier, duration, this.time.now);
   }
 
   gameOver(): void {
@@ -236,19 +242,21 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
     if (!boss) return null;
     const position = this.offscreenSpawnPoint(kind === 'dragon' ? 680 : 560);
     this.currentBoss = boss.spawn(this, kind, position.x, position.y, this.wave);
-    this.hud.setBoss(boss.displayName, boss.hp, boss.maxHp, kind === 'dragon' ? boss.phase : undefined);
-    this.showBossTitle(kind === 'dragon' ? 'ANCIENT FOREST DRAGON' : boss.displayName, kind === 'dragon' ? 'THE LAST FLAME AWAKENS' : 'MINIBOSS');
-    this.audio.crossfade(kind === 'dragon' ? 'dragon' : 'boss', 900);
-    if (kind === 'dragon') {
+    const ancient = kind === 'ancientBeast';
+    this.hud.setBoss(boss.displayName, boss.hp, boss.maxHp, kind === 'dragon' || ancient ? boss.phase : undefined, ancient ? 'corrupted' : kind === 'dragon' ? 'fire' : 'normal');
+    this.showBossTitle(kind === 'dragon' ? 'ANCIENT FOREST DRAGON' : ancient ? 'ANCIENT BEAST' : boss.displayName, kind === 'dragon' ? 'THE FINAL FLAME AWAKENS' : ancient ? 'ROTTEN WINGS ECLIPSE THE GROVE' : 'MINIBOSS');
+    this.audio.crossfade(kind === 'dragon' || ancient ? 'dragon' : 'boss', 900);
+    if (kind === 'dragon' || ancient) {
       this.playSfx('dragon-roar', 0.9);
       this.cameras.main.shake(900, 0.014);
+      if (ancient) this.cameras.main.flash(500, 38, 92, 35);
     }
     return boss;
   }
 
   bossHealthChanged(boss: BossActor): void {
     if (this.currentBoss !== boss) return;
-    this.hud.setBoss(boss.displayName, boss.hp, boss.maxHp, boss.kind === 'dragon' ? boss.phase : undefined);
+    this.hud.setBoss(boss.displayName, boss.hp, boss.maxHp, boss.kind === 'dragon' || boss.kind === 'ancientBeast' ? boss.phase : undefined, boss.kind === 'ancientBeast' ? 'corrupted' : boss.kind === 'dragon' ? 'fire' : 'normal');
   }
 
   bossDied(boss: BossActor): void {
@@ -256,14 +264,25 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
     const x = boss.x;
     const y = boss.y;
     const isDragon = boss.kind === 'dragon';
+    const isBeast = boss.kind === 'ancientBeast';
     boss.retire();
     this.currentBoss = null;
     this.run.bossesDefeated += 1;
     this.hud.hideBoss();
-    this.burst(x, y, isDragon ? 0xffd46f : 0xb99cff, isDragon ? 34 : 24, isDragon ? 260 : 180);
-    this.cameras.main.shake(isDragon ? 1000 : 420, isDragon ? 0.02 : 0.008);
+    this.burst(x, y, isDragon ? 0xffd46f : isBeast ? 0x63df70 : 0xb99cff, isDragon || isBeast ? 36 : 24, isDragon || isBeast ? 270 : 180);
+    this.cameras.main.shake(isDragon || isBeast ? 1000 : 420, isDragon || isBeast ? 0.02 : 0.008);
     if (isDragon) {
       this.winRun(x, y);
+    } else if (isBeast) {
+      this.playSfx('dragon-roar', 0.68);
+      this.player.heal(this.player.stats.maxHp);
+      this.vacuumExperience();
+      this.lootSystem.spawn(x - 42, y, 'health');
+      this.lootSystem.spawn(x + 42, y, 'magnet');
+      for (let i = 0; i < 16; i += 1) this.xpSystem.spawn(x + Phaser.Math.Between(-80, 80), y + Phaser.Math.Between(-60, 60), 20, 0x71e66f);
+      this.abilities.upgrade('blackHole');
+      this.cameras.main.flash(700, 62, 170, 70);
+      this.showAncientPowerChoices();
     } else {
       this.minibossDefeated = true;
       this.transitionAt = this.time.now + WAVES.restDuration * 1000;
@@ -366,6 +385,8 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
   }
 
   createDangerCircle(x: number, y: number, radius: number, delay: number, damage: number, color = 0xff7657): void {
+    if (this.activeWarnings >= 28) return;
+    this.activeWarnings += 1;
     const warning = this.add.circle(x, y, radius, color, 0.11).setStrokeStyle(4, color, 0.85).setDepth(7000);
     this.tweens.add({ targets: warning, scale: 0.6, alpha: 0.52, duration: delay, ease: 'Sine.in', onComplete: () => {
       if (!warning.active) return;
@@ -373,7 +394,25 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
       if (playerDistance <= radius) this.damagePlayer(damage);
       this.burst(x, y, color, 18, radius * 1.4);
       warning.destroy();
+      this.activeWarnings = Math.max(0, this.activeWarnings - 1);
       this.cameras.main.shake(120, 0.004);
+    }});
+  }
+
+  createDangerLine(x: number, y: number, angle: number, length: number, width: number, delay: number, damage: number, color = 0xff7657): void {
+    if (this.activeWarnings >= 28) return;
+    this.activeWarnings += 1;
+    const centerX = x + Math.cos(angle) * length * 0.5;
+    const centerY = y + Math.sin(angle) * length * 0.5;
+    const warning = this.add.rectangle(centerX, centerY, length, width, color, 0.12).setStrokeStyle(3, color, 0.86).setRotation(angle).setDepth(7100);
+    this.tweens.add({ targets: warning, alpha: 0.48, scaleY: 0.72, duration: delay, onComplete: () => {
+      if (!warning.active) return;
+      const line = new Phaser.Geom.Line(x, y, x + Math.cos(angle) * length, y + Math.sin(angle) * length);
+      const nearest = Phaser.Geom.Line.GetNearestPoint(line, new Phaser.Math.Vector2(this.player.x, this.player.y));
+      if (Phaser.Math.Distance.Between(nearest.x, nearest.y, this.player.x, this.player.y) <= width * 0.5) this.damagePlayer(damage);
+      this.burst(nearest.x, nearest.y, color, 18, width * 1.4);
+      warning.destroy();
+      this.activeWarnings = Math.max(0, this.activeWarnings - 1);
     }});
   }
 
@@ -488,6 +527,7 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
     this.isLeveling = false;
     this.hazards = [];
     this.currentBoss = null;
+    this.activeWarnings = 0;
   }
 
   private createPools(): void {
@@ -553,35 +593,29 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
     this.nextSpawnAt = this.time.now + 700;
     this.minibossSpawned = false;
     this.minibossDefeated = false;
-    this.dragonSpawned = false;
     this.transitionAt = 0;
-    this.showBossTitle(`WAVE ${wave}`, wave === 20 ? 'THE HEART OF THE INFERNO' : this.waveSubtitle(wave));
+    if (wave >= 4 && !this.corruptionOverlay) this.corruptionOverlay = this.add.rectangle(0, 0, this.scale.width, this.scale.height, 0x16232b, wave === 5 ? 0.24 : 0.12).setOrigin(0).setScrollFactor(0).setDepth(22_500).setBlendMode(Phaser.BlendModes.MULTIPLY);
+    if (this.corruptionOverlay) this.corruptionOverlay.setAlpha(wave === 5 ? 0.42 : wave >= 10 ? 0.25 : 0.16);
+    this.showBossTitle(wave === 5 ? 'WAVE 5 — BOSS WAVE' : wave === 10 ? 'WAVE 10 — FINAL WAVE' : `WAVE ${wave}`, wave === 5 ? 'THE ANCIENT BEAST STIRS' : wave === 10 ? 'THE FOREST DRAGON DESCENDS' : this.waveSubtitle(wave));
+    if (wave >= 6) this.audio.crossfade('boss', 850);
   }
 
   private updateWave(time: number): void {
     const elapsed = (time - this.waveStartedAt) / 1000;
-    const bossThreshold = WAVES.bossAtSeconds + Math.min(6, this.wave * 0.18);
-    if (!this.minibossSpawned && elapsed < bossThreshold && time >= this.nextSpawnAt) {
+    const bossThreshold = this.wave === 5 || this.wave === 10 ? 4 : WAVES.bossAtSeconds + Math.min(10, this.wave * 1.2);
+    if (this.wave !== 5 && this.wave !== 10 && !this.minibossSpawned && elapsed < bossThreshold && time >= this.nextSpawnAt) {
       this.spawnWaveEnemy();
-      const interval = Math.max(135, 940 - this.wave * 34);
-      const burst = this.wave >= 15 ? 3 : this.wave >= 8 ? 2 : 1;
+      const interval = Math.max(260, 920 - this.wave * 55);
+      const burst = this.wave >= 8 ? 3 : this.wave >= 4 ? 2 : 1;
       for (let i = 1; i < burst; i += 1) this.spawnWaveEnemy();
       this.nextSpawnAt = time + interval;
     }
     if (!this.minibossSpawned && elapsed >= bossThreshold) {
       this.minibossSpawned = true;
-      this.spawnBoss(this.wave % 2 === 1 ? 'golem' : 'vampire');
+      this.spawnBoss(this.bossForWave(this.wave));
     }
     if (this.minibossDefeated && this.transitionAt > 0 && time >= this.transitionAt) {
-      if (this.wave === 20) {
-        if (!this.dragonSpawned) {
-          this.dragonSpawned = true;
-          this.minibossDefeated = false;
-          this.spawnBoss('dragon');
-        }
-      } else {
-        this.startWave(this.wave + 1);
-      }
+      if (this.wave < WAVES.total) this.startWave(this.wave + 1);
     }
   }
 
@@ -623,6 +657,38 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
     while (choices.length < 3) choices.push(statChoices.shift()!);
     if (Math.random() < 0.22) choices[Phaser.Math.Between(0, 2)] = statChoices[0];
     return choices.slice(0, 3);
+  }
+
+  private showAncientPowerChoices(): void {
+    this.pauseSimulation();
+    const powers: UpgradeChoice[] = [
+      { id: 'giantOrbit', title: 'Giant Orbit', icon: 'icon-orb', currentLevel: 0, description: '+60% orb size, +35% radius, and +2 orbiting moons.', accent: 0xc5b3ff, apply: () => this.abilities.applyAncientPower('giantOrbit') },
+      { id: 'fallingHeavens', title: 'Falling Heavens', icon: 'icon-meteor', currentLevel: 0, description: '+65% meteor size and one additional falling star.', accent: 0xff9f55, apply: () => this.abilities.applyAncientPower('fallingHeavens') },
+      { id: 'toxicWorld', title: 'Toxic World', icon: 'icon-poison', currentLevel: 0, description: '+60% poison pool size. The forest becomes your plague garden.', accent: 0x75d86b, apply: () => this.abilities.applyAncientPower('toxicWorld') },
+      { id: 'endlessRicochet', title: 'Endless Ricochet', icon: 'icon-arrow', currentLevel: 0, description: '+80% arrow life and one additional rebound arrowhead.', accent: 0x76d7ff, apply: () => this.abilities.applyAncientPower('endlessRicochet') },
+      { id: 'deathRay', title: 'Death Ray', icon: 'icon-laser', currentLevel: 0, description: '+70% beam width and +35% Dawn Ray damage.', accent: 0xfff3a1, apply: () => this.abilities.applyAncientPower('deathRay') },
+    ];
+    Phaser.Utils.Array.Shuffle(powers);
+    this.overlays.showUpgrade(powers.slice(0, 3), (choice) => {
+      choice.apply();
+      this.minibossDefeated = true;
+      this.transitionAt = this.time.now + WAVES.restDuration * 1000;
+      this.resumeSimulation();
+      this.audio.crossfade('boss', 700);
+    }, 'ANCIENT POWER', 'Choose one relic from the fallen beast');
+  }
+
+  private bossForWave(wave: number): BossKind {
+    if (wave === 1) return 'troll';
+    if (wave === 2) return 'werewolf';
+    if (wave === 3) return 'snake';
+    if (wave === 4) return 'minotaur';
+    if (wave === 5) return 'ancientBeast';
+    if (wave === 6) return 'wyvern';
+    if (wave === 7) return 'troll';
+    if (wave === 8) return 'werewolf';
+    if (wave === 9) return Phaser.Utils.Array.GetRandom(['minotaur', 'wyvern', 'snake'] as BossKind[]);
+    return 'dragon';
   }
 
   private damageBreakable(breakable: Phaser.Physics.Arcade.Image, damage: number): void {
@@ -722,19 +788,19 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
 
   private waveSubtitle(wave: number): string {
     if (wave === 1) return 'THE FIRST STIRRING';
-    if (wave <= 5) return 'SHADOWS GATHER';
-    if (wave <= 10) return 'ELITES AWAKEN';
-    if (wave <= 15) return 'THE WILD HUNT';
-    return 'NIGHT CLOSES IN';
+    if (wave <= 4) return 'SHADOWS GATHER';
+    if (wave <= 8) return 'ELITES AWAKEN';
+    return 'THE WILD HUNT';
   }
 
   private winRun(x: number, y: number): void {
     this.isRunEnded = true;
+    this.game.canvas.dataset.gameState = JSON.stringify(this.debugState());
     this.audio.crossfade('victory', 900);
     this.playSfx('dragon-roar', 0.6);
     const crystal = this.add.image(x, y, 'xp-gem').setScale(4).setBlendMode(Phaser.BlendModes.ADD).setDepth(15_000);
     this.tweens.add({ targets: crystal, y: y - 90, angle: 360, scaleX: 5.2, scaleY: 5.2, duration: 1500, ease: 'Sine.inOut' });
-    SaveManager.recordRun({ wave: 20, kills: this.run.kills, elapsedMs: this.run.elapsedMs, level: this.xpSystem.level, damageDealt: this.run.damageDealt, victory: true });
+    SaveManager.recordRun({ wave: 10, kills: this.run.kills, elapsedMs: this.run.elapsedMs, level: this.xpSystem.level, damageDealt: this.run.damageDealt, victory: true });
     this.time.timeScale = 0.45;
     this.time.delayedCall(850, () => {
       this.time.timeScale = 1;
@@ -754,6 +820,7 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
       wave: this.wave,
       enemies: this.enemies.countActive(true),
       bosses: this.bosses.countActive(true),
+      boss: this.currentBoss?.active ? { kind: this.currentBoss.kind, phase: this.currentBoss.phase, hp: this.currentBoss.hp, maxHp: this.currentBoss.maxHp } : null,
       level: this.xpSystem.level,
       xp: this.xpSystem.xp,
       abilities: this.abilities.getOwnedStates(this.time.now).map((state) => `${state.id}:${state.level}`),
@@ -768,6 +835,8 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
     this.hud?.destroy();
     this.hazards.forEach((hazard) => hazard.destroy(true));
     this.hazards = [];
+    this.corruptionOverlay?.destroy();
+    this.corruptionOverlay = null;
     if (window.__GLIMMERGROVE_STATE__) delete window.__GLIMMERGROVE_STATE__;
     delete this.game.canvas.dataset.gameState;
     this.audio.setMusic('forest' as MusicKey, { fadeMs: 500 });
@@ -776,8 +845,8 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
   private setupDevelopmentShortcuts(): void {
     if (!import.meta.env.DEV) return;
     this.input.keyboard?.on('keydown-F2', () => this.xpSystem.addBundle(this.xpSystem.required));
-    this.input.keyboard?.on('keydown-F3', () => !this.currentBoss && this.spawnBoss('golem'));
-    this.input.keyboard?.on('keydown-F4', () => !this.currentBoss && this.spawnBoss('vampire'));
+    this.input.keyboard?.on('keydown-F3', () => !this.currentBoss && this.spawnBoss('troll'));
+    this.input.keyboard?.on('keydown-F4', () => !this.currentBoss && this.spawnBoss('ancientBeast'));
     this.input.keyboard?.on('keydown-F5', () => !this.currentBoss && this.spawnBoss('dragon'));
     this.input.keyboard?.on('keydown-F6', () => this.currentBoss?.takeDamage(this.currentBoss.maxHp * 3, { source: 'bolt' }));
     this.input.keyboard?.on('keydown-F7', () => this.currentBoss?.takeDamage(this.currentBoss.maxHp * 0.26, { source: 'bolt' }));
@@ -787,8 +856,14 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
       this.currentBoss.takeDamage(0, { source: 'bolt' });
     });
     this.input.keyboard?.on('keydown-F9', () => {
-      const kinds: EnemyKind[] = ['slime', 'goblin', 'bat', 'skeleton', 'wolf'];
+      const kinds: EnemyKind[] = ['slime', 'goblin', 'bat', 'skeleton', 'wolf', 'spider', 'zombie', 'mushroom', 'plant', 'darkKnight', 'lizardman', 'witch'];
       for (let i = 0; i < 120; i += 1) this.spawnEnemy(kinds[i % kinds.length]);
+    });
+    this.input.keyboard?.on('keydown-F10', () => !this.currentBoss && this.startWave(5));
+    this.input.keyboard?.on('keydown-F11', () => !this.currentBoss && this.startWave(10));
+    this.input.keyboard?.on('keydown-U', () => {
+      const ids: AbilityId[] = ['bolt', 'orb', 'meteor', 'poison', 'shuriken', 'laser', 'arrow', 'lightning', 'fireRing', 'iceStorm', 'blackHole'];
+      for (const id of ids) while (this.abilities.getLevel(id) < 8) this.abilities.upgrade(id);
     });
   }
 }

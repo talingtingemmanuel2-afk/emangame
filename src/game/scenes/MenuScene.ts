@@ -86,7 +86,7 @@ export class MenuScene extends Phaser.Scene {
     const highScore = SaveManager.load().highScore;
     const scoreText = highScore
       ? `BEST  •  WAVE ${highScore.wave}  •  ${highScore.kills} KILLS${highScore.victory ? '  •  FOREST SAVED' : ''}`
-      : 'SURVIVE 20 WAVES  •  AWAKEN THE GROVE  •  DEFEAT THE DRAGON';
+      : 'SURVIVE 10 HARD WAVES  •  SLAY THE ANCIENT BEAST  •  DEFEAT THE DRAGON';
     this.add.text(width * 0.5, height * 0.91, scoreText, {
       fontFamily: 'Nunito, sans-serif', fontSize: `${Math.max(11, Math.min(15, width * 0.012))}px`, fontStyle: 'bold', color: '#b9d7bd', letterSpacing: 1,
     }).setOrigin(0.5).setAlpha(0.78).setDepth(10);
