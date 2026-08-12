@@ -8,6 +8,7 @@ export interface EnemyHost {
   wave: number;
   fireEnemyProjectile(x: number, y: number, targetX: number, targetY: number, options?: {
     texture?: string; speed?: number; damage?: number; spread?: number; count?: number; scale?: number;
+    tint?: number; rotate?: number; lifespan?: number;
   }): void;
   spawnEnemy(kind: EnemyKind, x?: number, y?: number, forcedElite?: boolean): EnemyActor | null;
   enemyDied(enemy: EnemyActor): void;
@@ -16,6 +17,7 @@ export interface EnemyHost {
   floatingText(x: number, y: number, text: string, color: string, large?: boolean): void;
   playSfx(key: string, volume?: number): void;
   createDangerCircle(x: number, y: number, radius: number, delay: number, damage: number, color?: number): void;
+  createEnemyPoisonPool(x: number, y: number, radius: number, duration: number, damage: number): void;
   applyPlayerSlow(multiplier: number, duration: number): void;
 }
 
@@ -50,11 +52,13 @@ export class EnemyActor extends Phaser.Physics.Arcade.Sprite {
   private baseScale = 1;
   private phaseSeed = Math.random() * Math.PI * 2;
   private revived = false;
+  private readonly shadow: Phaser.GameObjects.Ellipse;
 
   constructor(scene: Phaser.Scene) {
     super(scene, -100, -100, 'enemy-slime');
     scene.add.existing(this);
     scene.physics.add.existing(this);
+    this.shadow = scene.add.ellipse(-100, -100, 25, 10, 0x07120e, 0.38).setVisible(false);
     this.disableBody(true, true);
   }
 
@@ -92,13 +96,15 @@ export class EnemyActor extends Phaser.Physics.Arcade.Sprite {
     this.revived = false;
 
     this.enableBody(true, x, y, true, true);
-    this.setTexture(definition.texture).setScale(this.baseScale * (this.elite ? 1.28 : 1));
+    this.setTexture(this.isArcher ? 'enemy-skeleton-archer' : definition.texture).setScale(this.baseScale * (this.elite ? 1.28 : 1));
     this.setAlpha(1).setAngle(0).setFlipX(false).setDepth(y + 18).clearTint();
     if (this.elite) this.setTint(this.eliteModifier === 'Armored' ? 0xc7d7db : this.eliteModifier === 'Vampiric' ? 0xff8ca5 : 0xffe27a);
     const body = this.body as Phaser.Physics.Arcade.Body;
     const radius = definition.bodyRadius * (this.elite ? 1.16 : 1);
     body.setCircle(radius, Math.max(0, this.width / 2 - radius), Math.max(0, this.height / 2 - radius));
     body.setEnable(true).setVelocity(0);
+    const shadowScale = this.elite ? 1.34 : 1;
+    this.shadow.setVisible(true).setPosition(x, y + (kind === 'bat' ? 19 : 13)).setScale(shadowScale, kind === 'bat' ? 0.78 : 1).setDepth(y - 2);
     return this;
   }
 
@@ -122,6 +128,12 @@ export class EnemyActor extends Phaser.Physics.Arcade.Sprite {
       case 'goblin': {
         const flank = Math.sin(time * 0.0025 + this.phaseSeed) * 0.42;
         this.setVelocity((direction.x - direction.y * flank) * speed, (direction.y + direction.x * flank) * speed);
+        if (time >= this.nextActionAt && distance < 90) {
+          this.nextActionAt = time + 1150;
+          this.setAngle(direction.x < 0 ? -14 : 14);
+          this.scene.tweens.add({ targets: this, angle: 0, duration: 180, ease: 'Back.out' });
+          this.host.burst(this.x + direction.x * 14, this.y + direction.y * 14, 0xe5cc75, 3, 42);
+        }
         break;
       }
       case 'bat': {
@@ -160,23 +172,30 @@ export class EnemyActor extends Phaser.Physics.Arcade.Sprite {
           this.nextActionAt = time + Phaser.Math.Between(2100, 3300);
           if (distance < 230) {
             this.host.playSfx('web', 0.36);
-            this.host.createDangerCircle(player.x, player.y, 40, 620, this.damage * 0.65, 0x9e7bd1);
-            this.scene.time.delayedCall(620, () => this.active && this.host.applyPlayerSlow(0.7, 1300));
+            const webX = player.x;
+            const webY = player.y;
+            this.host.createDangerCircle(webX, webY, 40, 620, this.damage * 0.65, 0x9e7bd1);
+            this.scene.time.delayedCall(620, () => this.active && this.host.createEnemyPoisonPool(webX, webY, 48, 2300, this.damage * 0.22));
           } else this.host.fireEnemyProjectile(this.x, this.y, player.x, player.y, { texture: 'projectile-blood', speed: 180, damage: this.damage * 0.7, scale: 0.55 });
         }
         break;
       }
       case 'zombie': {
         this.setVelocity(direction.x * speed, direction.y * speed);
+        this.setAngle(Math.sin(time * 0.003 + this.phaseSeed) * 4);
         break;
       }
       case 'mushroom': {
         this.setVelocity(direction.x * speed, direction.y * speed);
+        const capBounce = 1 + Math.max(0, Math.sin(time * 0.007 + this.phaseSeed)) * 0.07;
+        this.setScale(this.baseScale / capBounce, this.baseScale * capBounce);
         if (time >= this.nextActionAt && distance < 290) {
           this.host.playSfx('spore', 0.3);
           this.nextActionAt = time + 3400;
-          this.host.createDangerCircle(player.x, player.y, 74, 850, this.damage * 0.8, 0xa65ac0);
-          this.scene.time.delayedCall(850, () => this.active && this.host.applyPlayerSlow(0.82, 900));
+          const poolX = player.x;
+          const poolY = player.y;
+          this.host.createDangerCircle(poolX, poolY, 74, 850, this.damage * 0.8, 0xa65ac0);
+          this.scene.time.delayedCall(850, () => this.active && this.host.createEnemyPoisonPool(poolX, poolY, 82, 3500, this.damage * 0.28));
         }
         break;
       }
@@ -187,7 +206,6 @@ export class EnemyActor extends Phaser.Physics.Arcade.Sprite {
           const leadX = player.x + (player.body instanceof Phaser.Physics.Arcade.Body ? player.body.velocity.x * 0.38 : 0);
           const leadY = player.y + (player.body instanceof Phaser.Physics.Arcade.Body ? player.body.velocity.y * 0.38 : 0);
           this.host.createDangerCircle(leadX, leadY, 52, 920, this.damage, 0x52c16a);
-          this.scene.time.delayedCall(920, () => this.active && this.host.applyPlayerSlow(0.55, 1100));
         }
         break;
       }
@@ -217,6 +235,7 @@ export class EnemyActor extends Phaser.Physics.Arcade.Sprite {
           this.nextActionAt = time + 1900;
           this.host.fireEnemyProjectile(this.x, this.y, player.x, player.y, { texture: 'projectile-blood', speed: 210, damage: this.damage, spread: 0.12, count: this.elite ? 3 : 1, scale: 0.9 });
           this.host.playSfx('curse', 0.32);
+          this.host.burst(this.x, this.y - 18, 0xb980ff, this.elite ? 8 : 4, 55);
           if (distance < 155) this.setPosition(this.x - direction.x * 145, this.y - direction.y * 145);
           this.host.playSfx('teleport', 0.25);
         }
@@ -226,6 +245,9 @@ export class EnemyActor extends Phaser.Physics.Arcade.Sprite {
 
     this.setFlipX(this.body instanceof Phaser.Physics.Arcade.Body && this.body.velocity.x < -4);
     this.setDepth(this.y + 18);
+    const flying = this.kind === 'bat';
+    const altitude = flying ? 19 + Math.sin(time * 0.006 + this.phaseSeed) * 3 : 13;
+    this.shadow.setPosition(this.x, this.y + altitude).setDepth(this.y - 2).setAlpha(flying ? 0.25 : 0.38);
     if (distance > 1550 && time - this.spawnedAt > 5000) {
       const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
       this.setPosition(player.x + Math.cos(angle) * 760, player.y + Math.sin(angle) * 760);
@@ -269,6 +291,7 @@ export class EnemyActor extends Phaser.Physics.Arcade.Sprite {
   retire(): void {
     this.disableBody(true, true);
     this.setVelocity(0).clearTint();
+    this.shadow.setVisible(false);
   }
 
   private updateWolf(time: number, speed: number, direction: Phaser.Math.Vector2): void {
@@ -319,7 +342,7 @@ export class EnemyActor extends Phaser.Physics.Arcade.Sprite {
     if (this.eliteModifier === 'Explosive') {
       this.host.createDangerCircle(this.x, this.y, 74, 500, Math.round(this.damage * 1.4), 0xffbf66);
     }
-    if (this.kind === 'mushroom' && Math.random() < 0.55) this.host.createDangerCircle(this.x, this.y, 78, 450, this.damage * 0.75, 0xb261b9);
+    if (this.kind === 'mushroom' && Math.random() < 0.55) this.host.createEnemyPoisonPool(this.x, this.y, 78, 3000, this.damage * 0.24);
     this.host.enemyDied(this);
   }
 

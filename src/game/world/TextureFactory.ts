@@ -574,6 +574,7 @@ export function createGameTextures(scene: Phaser.Scene): void {
     rect(context, PALETTE.ink, 12, 14, 2, 3);
     rect(context, PALETTE.ink, 19, 14, 2, 3);
     rect(context, PALETTE.purpleLight, 15, 19, 4, 2);
+    rect(context, PALETTE.white, 6, 15, 2, 2); rect(context, PALETTE.cyan, 23, 18, 3, 2);
   });
 
   createTexture(scene, 'enemy-goblin', 32, 38, (context) => {
@@ -590,6 +591,7 @@ export function createGameTextures(scene: Phaser.Scene): void {
     rect(context, PALETTE.ink, 15, 24, 4, 4);
     polygon(context, PALETTE.stoneLight, [[27, 18], [31, 17], [26, 31], [24, 30]]);
     rect(context, PALETTE.barkDark, 24, 27, 3, 9);
+    rect(context, PALETTE.white, 27, 19, 2, 5); rect(context, PALETTE.redDark, 10, 20, 4, 3);
   });
 
   createTexture(scene, 'enemy-bat', 42, 28, (context) => {
@@ -602,6 +604,7 @@ export function createGameTextures(scene: Phaser.Scene): void {
     rect(context, PALETTE.redLight, 23, 12, 3, 2);
     rect(context, PALETTE.white, 19, 12, 1, 1);
     rect(context, PALETTE.white, 24, 12, 1, 1);
+    pixelLine(context, '#b485d7', 1, [[6, 6], [14, 12], [13, 16]]); pixelLine(context, '#b485d7', 1, [[36, 6], [28, 12], [29, 16]]);
   });
 
   createTexture(scene, 'enemy-skeleton', 34, 42, (context) => {
@@ -620,6 +623,17 @@ export function createGameTextures(scene: Phaser.Scene): void {
     pixelLine(context, PALETTE.stoneLight, 3, [[28, 8], [28, 34]]);
     polygon(context, PALETTE.stoneLight, [[24, 7], [28, 0], [32, 7]]);
     rect(context, PALETTE.barkDark, 27, 27, 4, 8);
+    rect(context, PALETTE.redLight, 15, 23, 4, 2); rect(context, PALETTE.boneShadow, 6, 35, 5, 2);
+  });
+
+  createTexture(scene, 'enemy-skeleton-archer', 38, 43, (context) => {
+    polygon(context, PALETTE.ink, [[9, 2], [24, 1], [29, 7], [27, 18], [23, 21], [24, 29], [31, 39], [26, 43], [18, 32], [12, 43], [6, 40], [12, 28], [11, 21], [5, 16], [5, 7]]);
+    steppedBox(context, PALETTE.bone, 8, 3, 18, 17, 3); rect(context, PALETTE.ink, 11, 9, 4, 4); rect(context, PALETTE.ink, 20, 9, 4, 4);
+    rect(context, PALETTE.redLight, 21, 10, 2, 2); rect(context, PALETTE.boneShadow, 12, 17, 11, 3);
+    rect(context, PALETTE.bone, 14, 21, 7, 11); rect(context, PALETTE.leather, 11, 23, 13, 7);
+    pixelLine(context, PALETTE.bone, 3, [[14, 31], [8, 41]]); pixelLine(context, PALETTE.bone, 3, [[21, 31], [27, 41]]);
+    pixelLine(context, PALETTE.goldDark, 2, [[31, 4], [36, 12], [36, 28], [31, 37]]); pixelLine(context, PALETTE.white, 1, [[32, 5], [32, 36]]);
+    pixelLine(context, PALETTE.barkLight, 2, [[31, 21], [16, 18]]); polygon(context, PALETTE.stoneLight, [[15, 18], [20, 15], [19, 20]]);
   });
 
   createTexture(scene, 'enemy-wolf', 44, 30, (context) => {
@@ -631,6 +645,7 @@ export function createGameTextures(scene: Phaser.Scene): void {
     rect(context, PALETTE.white, 36, 12, 1, 1);
     rect(context, PALETTE.ink, 40, 16, 4, 3);
     rect(context, PALETTE.bone, 36, 20, 5, 2);
+    pixelLine(context, PALETTE.stoneLight, 2, [[17, 10], [24, 12], [31, 9]]); rect(context, PALETTE.redDark, 8, 15, 4, 2);
   });
 
   createTexture(scene, 'enemy-spider', 38, 30, (context) => {
@@ -639,41 +654,94 @@ export function createGameTextures(scene: Phaser.Scene): void {
     polygon(context, '#25172f', [[10, 8], [19, 4], [29, 10], [27, 23], [19, 29], [10, 21]]);
     polygon(context, '#74508e', [[13, 10], [19, 7], [26, 12], [24, 21], [19, 25], [13, 19]]);
     rect(context, '#f1668b', 14, 12, 4, 3); rect(context, '#f1668b', 21, 12, 4, 3);
+    rect(context, '#c996d7', 17, 17, 4, 3); rect(context, '#75d06a', 18, 23, 3, 3);
   });
   createTexture(scene, 'enemy-zombie', 34, 43, (context) => {
     polygon(context, '#15241c', [[8, 3], [24, 2], [29, 10], [26, 22], [30, 40], [22, 43], [17, 31], [12, 43], [4, 40], [8, 23], [4, 13]]);
     rect(context, '#6f9668', 9, 5, 16, 15); rect(context, '#53624f', 7, 21, 20, 14);
     rect(context, '#d7e36a', 11, 11, 3, 3); rect(context, '#d7e36a', 20, 11, 3, 3); rect(context, '#6f2930', 15, 17, 6, 2);
+    rect(context, '#934a48', 4, 25, 7, 4); rect(context, '#b8c49a', 23, 5, 5, 3); pixelLine(context, '#404d3e', 2, [[14, 24], [24, 29]]);
   });
   createTexture(scene, 'enemy-mushroom', 38, 40, (context) => {
     polygon(context, '#201521', [[3, 17], [8, 5], [19, 0], [31, 5], [36, 17], [30, 23], [25, 22], [28, 39], [10, 39], [13, 22], [7, 23]]);
     polygon(context, '#b65f8b', [[5, 16], [10, 7], [19, 3], [29, 8], [34, 16], [28, 20], [10, 20]]);
     rect(context, '#f2c7d9', 14, 22, 11, 15); rect(context, '#fff0d7', 11, 10, 5, 4); rect(context, '#fff0d7', 24, 7, 4, 4);
+    rect(context, '#6f254f', 9, 15, 4, 3); rect(context, '#6f254f', 26, 14, 4, 3); rect(context, '#e6b0cf', 17, 26, 2, 5);
   });
   createTexture(scene, 'enemy-plant', 38, 44, (context) => {
     polygon(context, '#15351e', [[17, 10], [7, 2], [9, 17], [0, 20], [13, 26], [8, 43], [19, 35], [30, 43], [25, 26], [38, 20], [27, 16], [31, 3], [21, 10]]);
     rect(context, '#4d9a4e', 14, 11, 11, 25); rect(context, '#9ac75f', 17, 15, 5, 7); rect(context, '#f2d45d', 18, 18, 2, 2);
+    pixelLine(context, '#78c861', 2, [[15, 24], [6, 31], [3, 39]]); pixelLine(context, '#78c861', 2, [[24, 24], [32, 31], [35, 40]]); rect(context, '#e96d67', 10, 18, 3, 3);
   });
   createTexture(scene, 'enemy-darkKnight', 36, 46, (context) => {
     polygon(context, '#111522', [[9, 1], [27, 1], [33, 13], [28, 27], [34, 44], [21, 46], [18, 34], [13, 46], [2, 44], [8, 27], [3, 13]]);
     polygon(context, '#3f4965', [[10, 4], [26, 4], [29, 14], [25, 27], [11, 27], [7, 14]]); rect(context, '#dc5575', 10, 13, 16, 3);
     rect(context, '#20263b', 9, 28, 18, 13); pixelLine(context, '#b7bfd2', 3, [[30, 15], [33, 40]]);
+    polygon(context, '#66708d', [[11, 5], [18, 1], [25, 5], [27, 11], [9, 11]]); rect(context, '#ec6b83', 16, 15, 4, 3); rect(context, '#9da7ba', 13, 31, 10, 3);
   });
   createTexture(scene, 'enemy-lizardman', 36, 43, (context) => {
     polygon(context, '#18301c', [[8, 4], [25, 2], [31, 9], [27, 20], [31, 38], [23, 42], [18, 30], [12, 43], [5, 38], [10, 21], [4, 13]]);
     rect(context, '#5d9d50', 9, 7, 17, 15); rect(context, '#d9e66c', 20, 11, 4, 3); polygon(context, '#52744a', [[9, 22], [27, 22], [25, 34], [11, 34]]);
     pixelLine(context, '#c7b17a', 2, [[30, 3], [30, 41]]);
+    polygon(context, '#76bd5c', [[7, 8], [13, 1], [16, 8]]); rect(context, '#d5ef77', 10, 15, 3, 2); rect(context, '#7c4d35', 10, 26, 15, 3);
   });
   createTexture(scene, 'enemy-witch', 38, 46, (context) => {
     polygon(context, '#21162c', [[18, 0], [7, 15], [14, 16], [4, 43], [18, 38], [34, 44], [25, 16], [34, 15]]);
     polygon(context, '#7e3c74', [[10, 29], [18, 18], [27, 29], [33, 42], [19, 38], [5, 42]]); rect(context, '#e1c9b2', 13, 13, 11, 10);
     rect(context, '#f16b9c', 14, 17, 3, 2); rect(context, '#f16b9c', 21, 17, 3, 2);
+    rect(context, '#c78be0', 4, 37, 5, 3); rect(context, '#6a48a3', 28, 35, 4, 5); polygon(context, '#b49ae6', [[17, 27], [20, 22], [23, 27], [20, 31]]);
   });
 
   createTexture(scene, 'boss-minotaur', 70, 78, (context) => {
     polygon(context, '#1f1512', [[16, 9], [1, 0], [7, 18], [13, 22], [7, 40], [13, 72], [28, 78], [35, 62], [44, 78], [59, 72], [62, 40], [56, 22], [69, 0], [53, 9], [45, 3], [25, 3]]);
     polygon(context, '#7a4b31', [[18, 10], [27, 7], [43, 7], [52, 12], [55, 27], [45, 38], [25, 38], [15, 27]]);
     rect(context, '#f0b85c', 20, 20, 6, 4); rect(context, '#f0b85c', 44, 20, 6, 4); rect(context, '#463044', 17, 39, 38, 28);
+    polygon(context, '#9d6a45', [[4, 2], [14, 12], [18, 24], [10, 19]]); polygon(context, '#9d6a45', [[66, 2], [56, 12], [52, 24], [60, 19]]);
+    rect(context, '#d6a04f', 24, 43, 22, 6); rect(context, '#222331', 30, 48, 10, 4); pixelLine(context, '#c6cbd2', 5, [[57, 39], [66, 64]]);
+    polygon(context, '#9aa2ac', [[55, 32], [68, 26], [65, 55], [55, 60]]); rect(context, '#f77a58', 32, 15, 6, 4);
+  });
+
+  createTexture(scene, 'boss-rooster', 90, 82, (context) => {
+    polygon(context, PALETTE.ink, [[39, 8], [43, 0], [49, 8], [56, 1], [56, 13], [65, 17], [78, 12], [75, 23], [88, 30], [77, 36], [85, 48], [69, 47], [65, 63], [73, 78], [59, 82], [48, 67], [37, 82], [23, 78], [31, 61], [24, 50], [8, 58], [15, 44], [1, 37], [18, 28], [23, 16], [34, 14]]);
+    polygon(context, '#a41f37', [[38, 11], [44, 5], [48, 12], [54, 6], [53, 17], [61, 20], [71, 17], [68, 27], [81, 31], [69, 35], [75, 43], [62, 41], [58, 58], [65, 74], [56, 76], [47, 61], [38, 76], [28, 74], [35, 58], [29, 46], [16, 52], [22, 40], [10, 36], [24, 29], [28, 19]]);
+    polygon(context, '#e74842', [[33, 20], [46, 14], [59, 21], [63, 38], [57, 55], [46, 64], [34, 55], [27, 39]]);
+    polygon(context, '#f58448', [[14, 35], [30, 25], [32, 47], [18, 48], [25, 40]]); polygon(context, '#f58448', [[76, 31], [61, 24], [60, 45], [73, 43], [67, 37]]);
+    polygon(context, '#ffd36b', [[29, 20], [35, 14], [43, 15], [39, 22]]); polygon(context, '#ffd36b', [[56, 21], [66, 20], [75, 25], [63, 29]]);
+    polygon(context, '#f6bd46', [[64, 29], [86, 34], [65, 40]]); rect(context, PALETTE.yellowLight, 55, 26, 5, 4); rect(context, PALETTE.ink, 57, 27, 2, 2);
+    polygon(context, '#6b1631', [[38, 56], [47, 62], [57, 54], [55, 65], [47, 71], [38, 65]]);
+    pixelLine(context, '#d9a64c', 4, [[40, 63], [34, 77]]); pixelLine(context, '#d9a64c', 4, [[54, 62], [60, 77]]);
+    pixelLine(context, '#ffe08a', 2, [[34, 77], [25, 80]]); pixelLine(context, '#ffe08a', 2, [[60, 77], [69, 80]]);
+    rect(context, PALETTE.white, 36, 26, 5, 3); rect(context, '#ff6d5f', 37, 27, 3, 2);
+  });
+
+  createTexture(scene, 'boss-troll', 78, 84, (context) => {
+    polygon(context, PALETTE.ink, [[18, 7], [31, 1], [47, 4], [57, 13], [70, 16], [77, 34], [70, 55], [61, 57], [59, 79], [47, 84], [39, 68], [31, 83], [17, 79], [17, 58], [7, 55], [0, 36], [8, 17]]);
+    polygon(context, '#395a36', [[20, 9], [32, 4], [46, 7], [54, 16], [66, 19], [73, 35], [66, 51], [57, 53], [55, 75], [48, 79], [39, 63], [32, 78], [22, 75], [21, 54], [11, 51], [5, 36], [12, 21]]);
+    polygon(context, '#668449', [[22, 13], [35, 8], [49, 13], [55, 28], [51, 46], [40, 57], [25, 48], [17, 34]]);
+    polygon(context, '#8cac59', [[14, 16], [21, 7], [27, 14], [20, 24]]); polygon(context, '#8cac59', [[54, 16], [62, 8], [67, 18], [59, 25]]);
+    rect(context, '#f0d46a', 23, 27, 7, 5); rect(context, '#f0d46a', 45, 27, 7, 5); rect(context, PALETTE.ink, 26, 29, 3, 2); rect(context, PALETTE.ink, 46, 29, 3, 2);
+    polygon(context, '#2a3529', [[27, 40], [49, 40], [45, 50], [31, 50]]); rect(context, PALETTE.bone, 31, 40, 4, 5); rect(context, PALETTE.bone, 42, 40, 4, 5);
+    pixelLine(context, '#76583c', 5, [[66, 32], [72, 69]]); polygon(context, '#7c7f69', [[57, 13], [75, 5], [73, 28], [62, 34]]);
+    rect(context, '#6fa355', 19, 61, 8, 4); rect(context, '#9dc967', 50, 58, 6, 6); rect(context, '#d8b64d', 35, 15, 5, 3);
+  });
+
+  createTexture(scene, 'boss-werewolf', 82, 70, (context) => {
+    polygon(context, PALETTE.ink, [[7, 18], [18, 12], [23, 2], [34, 11], [51, 10], [63, 1], [66, 13], [78, 18], [81, 34], [72, 44], [67, 64], [55, 70], [45, 54], [33, 69], [20, 64], [18, 46], [5, 40], [0, 29]]);
+    polygon(context, '#39364f', [[10, 20], [20, 15], [25, 7], [34, 14], [50, 13], [60, 6], [61, 17], [74, 21], [77, 33], [68, 41], [63, 59], [56, 65], [45, 50], [34, 64], [24, 59], [22, 42], [9, 37], [4, 29]]);
+    polygon(context, '#69627e', [[20, 20], [31, 14], [50, 16], [63, 22], [67, 35], [57, 47], [43, 50], [27, 43], [15, 33]]);
+    polygon(context, '#8d82a9', [[25, 18], [38, 16], [29, 29], [18, 32]]); polygon(context, '#8d82a9', [[56, 18], [45, 16], [53, 30], [65, 32]]);
+    rect(context, '#f16b76', 26, 28, 7, 4); rect(context, '#f16b76', 50, 28, 7, 4); rect(context, PALETTE.white, 28, 28, 2, 2); rect(context, PALETTE.white, 52, 28, 2, 2);
+    polygon(context, PALETTE.ink, [[32, 39], [51, 39], [47, 48], [38, 48]]); polygon(context, PALETTE.bone, [[35, 40], [39, 47], [42, 40], [46, 47], [49, 40]]);
+    pixelLine(context, '#b99cff', 2, [[9, 26], [2, 20]]); pixelLine(context, '#b99cff', 2, [[71, 26], [80, 20]]); rect(context, '#796da1', 35, 54, 14, 4);
+  });
+
+  createTexture(scene, 'boss-wyvern', 112, 82, (context) => {
+    polygon(context, PALETTE.ink, [[52, 7], [61, 4], [68, 16], [81, 12], [108, 2], [99, 24], [112, 36], [89, 42], [82, 54], [103, 67], [84, 68], [72, 59], [64, 76], [53, 82], [42, 72], [30, 68], [9, 67], [30, 53], [24, 42], [0, 36], [15, 23], [7, 3], [36, 13], [46, 17]]);
+    polygon(context, '#8e3f3c', [[49, 18], [35, 16], [12, 7], [20, 23], [6, 34], [29, 38], [35, 50], [14, 63], [31, 61], [42, 52], [48, 66], [39, 72], [52, 76], [61, 70], [76, 67], [67, 56], [77, 48], [87, 62], [99, 63], [80, 48], [86, 38], [107, 34], [94, 23], [101, 7], [78, 16], [66, 21]]);
+    polygon(context, '#d46a43', [[52, 12], [62, 10], [67, 27], [76, 36], [72, 52], [62, 67], [52, 72], [43, 58], [38, 42], [43, 27]]);
+    polygon(context, '#f69b59', [[16, 12], [38, 19], [34, 37], [9, 32], [24, 23]]); polygon(context, '#f69b59', [[97, 12], [78, 19], [81, 37], [105, 32], [91, 23]]);
+    polygon(context, '#efb85d', [[46, 22], [68, 22], [71, 36], [64, 45], [50, 44], [42, 35]]); rect(context, PALETTE.yellowLight, 49, 29, 5, 3); rect(context, PALETTE.yellowLight, 61, 29, 5, 3);
+    polygon(context, PALETTE.bone, [[47, 43], [52, 50], [56, 44], [60, 50], [65, 43]]); rect(context, '#ffd06d', 53, 52, 10, 3); pixelLine(context, '#efbf6c', 3, [[42, 52], [34, 61]]); pixelLine(context, '#efbf6c', 3, [[73, 53], [81, 62]]);
   });
 
   createTexture(scene, 'boss-golem', 68, 76, (context) => {
@@ -751,6 +819,13 @@ export function createGameTextures(scene: Phaser.Scene): void {
     polygon(context, PALETTE.stone, [[4, 6], [8, 3], [13, 5], [15, 9], [12, 14], [7, 15], [3, 11]]);
     rect(context, PALETTE.stoneLight, 7, 4, 5, 3);
     rect(context, PALETTE.stoneDark, 4, 10, 4, 3);
+  });
+
+  createTexture(scene, 'projectile-feather', 24, 12, (context) => {
+    polygon(context, PALETTE.ink, [[1, 10], [6, 3], [14, 0], [23, 2], [18, 8], [10, 12]]);
+    polygon(context, PALETTE.white, [[4, 9], [8, 4], [15, 2], [21, 3], [17, 7], [10, 10]]);
+    pixelLine(context, PALETTE.gold, 2, [[3, 10], [19, 3]]);
+    rect(context, PALETTE.redLight, 8, 5, 4, 2);
   });
 
   createTexture(scene, 'projectile-blood', 14, 20, (context) => {

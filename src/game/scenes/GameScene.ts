@@ -10,13 +10,22 @@ import { Player, type PlayerHost } from '../entities/Player';
 import { Projectile } from '../entities/Projectile';
 import { ExperienceSystem, type ExperienceHost } from '../systems/ExperienceSystem';
 import { LootSystem, type LootHost } from '../systems/LootSystem';
-import type { AbilityId, BossKind, EnemyKind, PickupKind, RunStats, UpgradeChoice } from '../types';
+import type { AbilityId, BossKind, EnemyKind, Faction, PickupKind, RunStats, UpgradeChoice } from '../types';
 import { HUD } from '../ui/HUD';
 import { makeAbilityUpgradeChoice, OverlayManager, type OverlayHost } from '../ui/OverlayManager';
 import { ForestGenerator, type ForestWorld } from '../world/ForestGenerator';
 
+const PLAYER_PROJECTILE_CAPS: Partial<Record<AbilityId, number>> = {
+  bolt: 36,
+  shuriken: 44,
+  arrow: 42,
+  iceStorm: 34,
+};
+
 interface Hazard extends Phaser.GameObjects.Container {
   kind: 'poison' | 'blackHole' | 'tornado' | 'burning';
+  owner: Faction;
+  source: AbilityId | 'enemyPoison' | 'bossFire' | 'bossWind';
   radius: number;
   damage: number;
   expiresAt: number;
@@ -27,11 +36,14 @@ interface Hazard extends Phaser.GameObjects.Container {
 
 interface PickupDebugState {
   scene: string;
-  player: { x: number; y: number; hp: number; maxHp: number; dashing: boolean };
+  player: { x: number; y: number; hp: number; maxHp: number; dashing: boolean; movementModifier: number };
   wave: number;
   enemies: number;
+  enemyKinds: EnemyKind[];
   bosses: number;
-  boss: { kind: BossKind; phase: number; hp: number; maxHp: number } | null;
+  boss: { kind: BossKind; phase: number; hp: number; maxHp: number; lastAttack: string; attacksUsed: string[]; specialState: string } | null;
+  hazards: { total: number; player: number; enemy: number };
+  projectiles: { player: number; enemy: number };
   level: number;
   xp: number;
   abilities: string[];
@@ -73,6 +85,7 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
   private minibossDefeated = false;
   private transitionAt = 0;
   private currentBoss: BossActor | null = null;
+  private lastMinibossKind: BossKind | null = null;
   private spawnSerial = 0;
   private nextDebugWriteAt = 0;
   private corruptionOverlay: Phaser.GameObjects.Rectangle | null = null;
@@ -153,6 +166,16 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
     this.player.applyMovementSlow(multiplier, duration, this.time.now);
   }
 
+  pushPlayerFrom(x: number, y: number, distance: number): void {
+    const direction = new Phaser.Math.Vector2(this.player.x - x, this.player.y - y);
+    if (direction.lengthSq() === 0) direction.set(1, 0);
+    direction.normalize().scale(distance);
+    this.player.setPosition(
+      Phaser.Math.Clamp(this.player.x + direction.x, 32, WORLD_SIZE - 32),
+      Phaser.Math.Clamp(this.player.y + direction.y, 32, WORLD_SIZE - 32),
+    );
+  }
+
   gameOver(): void {
     if (this.isRunEnded) return;
     this.isRunEnded = true;
@@ -207,20 +230,48 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
     const x = enemy.x;
     const y = enemy.y;
     const elite = enemy.elite;
+    const kind = enemy.kind;
     const color = enemy.elite ? 0xffdb75 : 0x88e6b1;
     const xp = enemy.xpValue;
     enemy.retire();
     this.run.kills += 1;
     this.xpSystem.spawn(x, y, xp, color);
-    this.burst(x, y, color, elite ? 13 : 6, elite ? 140 : 85);
+    this.enemyDeathEffect(kind, x, y, elite);
     if (Math.random() < 0.012 || (elite && Math.random() < 0.09)) {
       this.lootSystem.spawn(x, y, Phaser.Utils.Array.GetRandom(['health', 'damage', 'speed', 'haste'] as PickupKind[]));
     }
     this.playSfx('death', elite ? 0.38 : 0.12);
   }
 
+  private enemyDeathEffect(kind: EnemyKind, x: number, y: number, elite: boolean): void {
+    const themes: Record<EnemyKind, { color: number; texture: string; pieces: number }> = {
+      slime: { color: 0x56d6df, texture: 'orb', pieces: 7 },
+      goblin: { color: 0xa4d768, texture: 'projectile-shuriken', pieces: 5 },
+      bat: { color: 0x9d6cc9, texture: 'projectile-feather', pieces: 7 },
+      skeleton: { color: 0xe1d9b9, texture: 'projectile-rock', pieces: 8 },
+      wolf: { color: 0x8b91a5, texture: 'projectile-feather', pieces: 6 },
+      spider: { color: 0xc479d6, texture: 'projectile-blood', pieces: 7 },
+      zombie: { color: 0x789566, texture: 'projectile-rock', pieces: 6 },
+      mushroom: { color: 0xd273a5, texture: 'orb', pieces: 9 },
+      plant: { color: 0x70c95f, texture: 'projectile-feather', pieces: 8 },
+      darkKnight: { color: 0x7e89ad, texture: 'projectile-rock', pieces: 7 },
+      lizardman: { color: 0x95c764, texture: 'projectile-shuriken', pieces: 6 },
+      witch: { color: 0xb77adb, texture: 'projectile-blood', pieces: 8 },
+    };
+    const theme = themes[kind];
+    this.burst(x, y, theme.color, elite ? 15 : 8, elite ? 150 : 95);
+    const count = Math.min(elite ? 12 : 8, theme.pieces + (elite ? 3 : 0));
+    for (let i = 0; i < count; i += 1) {
+      const fragment = this.add.image(x, y, theme.texture).setTint(theme.color).setScale(Phaser.Math.FloatBetween(0.18, 0.42)).setDepth(10_200);
+      const angle = i / count * Math.PI * 2 + Phaser.Math.FloatBetween(-0.2, 0.2);
+      const distance = Phaser.Math.Between(28, elite ? 100 : 68);
+      this.tweens.add({ targets: fragment, x: x + Math.cos(angle) * distance, y: y + Math.sin(angle) * distance + 22, angle: Phaser.Math.Between(-260, 260), alpha: 0, duration: Phaser.Math.Between(360, 680), ease: 'Quad.out', onComplete: () => fragment.destroy() });
+    }
+  }
+
   fireEnemyProjectile(x: number, y: number, targetX: number, targetY: number, options: {
     texture?: string; speed?: number; damage?: number; spread?: number; count?: number; scale?: number;
+    tint?: number; rotate?: number; lifespan?: number;
   } = {}): void {
     const count = options.count ?? 1;
     const base = Phaser.Math.Angle.Between(x, y, targetX, targetY);
@@ -231,7 +282,8 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
       const velocity = this.physics.velocityFromRotation(base + offset, options.speed ?? 240);
       projectile.launch({
         x, y, texture: options.texture ?? 'projectile-rock', owner: 'enemy', velocity,
-        damage: options.damage ?? 10, lifespan: 3400, scale: options.scale ?? 0.8, bodyRadius: 5,
+        damage: options.damage ?? 10, lifespan: options.lifespan ?? 3400, scale: options.scale ?? 0.8,
+        tint: options.tint, rotate: options.rotate, bodyRadius: 5,
       }, this.time.now);
     }
   }
@@ -242,9 +294,14 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
     if (!boss) return null;
     const position = this.offscreenSpawnPoint(kind === 'dragon' ? 680 : 560);
     this.currentBoss = boss.spawn(this, kind, position.x, position.y, this.wave);
+    if (kind !== 'dragon' && kind !== 'ancientBeast') this.lastMinibossKind = kind;
     const ancient = kind === 'ancientBeast';
     this.hud.setBoss(boss.displayName, boss.hp, boss.maxHp, kind === 'dragon' || ancient ? boss.phase : undefined, ancient ? 'corrupted' : kind === 'dragon' ? 'fire' : 'normal');
-    this.showBossTitle(kind === 'dragon' ? 'ANCIENT FOREST DRAGON' : ancient ? 'ANCIENT BEAST' : boss.displayName, kind === 'dragon' ? 'THE FINAL FLAME AWAKENS' : ancient ? 'ROTTEN WINGS ECLIPSE THE GROVE' : 'MINIBOSS');
+    const subtitles: Partial<Record<BossKind, string>> = {
+      rooster: 'THE WAR-CRY OF THE RED DAWN', troll: 'ROOT AND STONE AWAKEN', minotaur: 'THE LABYRINTH BREAKS FREE',
+      werewolf: 'THE BLOOD MOON HUNTS', wyvern: 'WINGS IGNITE THE SKY',
+    };
+    this.showBossTitle(kind === 'dragon' ? 'ANCIENT FOREST DRAGON' : ancient ? 'ANCIENT BEAST' : boss.displayName, kind === 'dragon' ? 'THE FINAL FLAME AWAKENS' : ancient ? 'ROTTEN WINGS ECLIPSE THE GROVE' : subtitles[kind] ?? 'MINIBOSS');
     this.audio.crossfade(kind === 'dragon' || ancient ? 'dragon' : 'boss', 900);
     if (kind === 'dragon' || ancient) {
       this.playSfx('dragon-roar', 0.9);
@@ -328,6 +385,15 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
     damage: number; lifespan?: number; pierce?: number; scale?: number; tint?: number; critical?: boolean;
     ability: AbilityId; rotate?: number; bounce?: boolean;
   }): void {
+    const abilityCap = PLAYER_PROJECTILE_CAPS[options.ability];
+    if (abilityCap != null) {
+      let activeForAbility = 0;
+      for (const object of this.playerProjectiles.getChildren()) {
+        const projectile = object as Projectile;
+        if (projectile.active && projectile.ability === options.ability) activeForAbility += 1;
+      }
+      if (activeForAbility >= abilityCap) return;
+    }
     const projectile = this.playerProjectiles.get(-100, -100) as Projectile | null;
     if (!projectile) return;
     const angle = options.angle ?? Phaser.Math.Angle.Between(options.x, options.y, options.targetX ?? options.x + 1, options.targetY ?? options.y);
@@ -365,22 +431,46 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
   }
 
   createPoisonPool(x: number, y: number, radius: number, duration: number, damage: number): void {
-    const circle = this.add.circle(0, 0, radius, 0x4b9f49, 0.28).setStrokeStyle(3, 0x8ae279, 0.45);
-    const bubbles = this.add.image(0, 0, 'black-hole').setTint(0x79d75f).setAlpha(0.45).setScale(radius / 45);
-    const hazard = this.add.container(x, y, [circle, bubbles]) as Hazard;
-    Object.assign(hazard, { kind: 'poison', radius, damage, expiresAt: this.time.now + duration, nextTickAt: this.time.now + 250, velocityX: 0, velocityY: 0 });
+    const outer = this.add.circle(0, 0, radius, 0x37c65c, 0.2).setStrokeStyle(4, 0xb6ff8b, 0.72);
+    const center = this.add.circle(0, 0, radius * 0.48, 0xb8ff63, 0.2).setBlendMode(Phaser.BlendModes.ADD);
+    const runes = this.add.image(0, 0, 'black-hole').setTint(0x9dff73).setAlpha(0.58).setScale(radius / 45).setBlendMode(Phaser.BlendModes.ADD);
+    const mist = this.add.image(0, -radius * 0.12, 'orb').setTint(0xaaffc5).setAlpha(0.25).setScale(radius / 16, radius / 28).setBlendMode(Phaser.BlendModes.ADD);
+    const children: Phaser.GameObjects.GameObject[] = [outer, center, runes, mist];
+    for (let i = 0; i < Math.min(6, 3 + Math.floor(radius / 55)); i += 1) {
+      const angle = i / 6 * Math.PI * 2;
+      children.push(this.add.circle(Math.cos(angle) * radius * 0.52, Math.sin(angle) * radius * 0.4, 3 + i % 2, 0xd8ff95, 0.74));
+    }
+    const hazard = this.add.container(x, y, children) as Hazard;
+    Object.assign(hazard, { kind: 'poison', owner: 'player', source: 'poison', radius, damage, expiresAt: this.time.now + duration, nextTickAt: this.time.now + 250, velocityX: 0, velocityY: 0 });
     hazard.setDepth(y - 4);
-    this.hazards.push(hazard);
-    this.tweens.add({ targets: bubbles, angle: 360, duration: 2600, repeat: -1 });
+    this.registerHazard(hazard);
+    this.tweens.add({ targets: runes, angle: 360, duration: 2400, repeat: -1 });
+    this.tweens.add({ targets: [center, mist], alpha: { from: 0.12, to: 0.42 }, scaleX: '+=0.14', scaleY: '+=0.14', duration: 720, yoyo: true, repeat: -1 });
+    if (radius >= 145) {
+      for (let i = 0; i < 3; i += 1) {
+        this.time.delayedCall(i * 140, () => hazard.active && this.burst(x + Phaser.Math.Between(-radius / 2, radius / 2), y + Phaser.Math.Between(-radius / 3, radius / 3), 0xbaff76, 8, 125));
+      }
+    }
+  }
+
+  createEnemyPoisonPool(x: number, y: number, radius: number, duration: number, damage: number): void {
+    const outer = this.add.circle(0, 0, radius, 0x42113f, 0.32).setStrokeStyle(4, 0xd25b9d, 0.78);
+    const core = this.add.image(0, 0, 'black-hole').setTint(0x7d315f).setAlpha(0.65).setScale(radius / 48).setBlendMode(Phaser.BlendModes.ADD);
+    const vein = this.add.circle(0, 0, radius * 0.42, 0x9d263f, 0.2).setStrokeStyle(2, 0xff596d, 0.58);
+    const hazard = this.add.container(x, y, [outer, vein, core]) as Hazard;
+    Object.assign(hazard, { kind: 'poison', owner: 'enemy', source: 'enemyPoison', radius, damage, expiresAt: this.time.now + duration, nextTickAt: this.time.now + 300, velocityX: 0, velocityY: 0 });
+    hazard.setDepth(y - 3);
+    this.registerHazard(hazard);
+    this.tweens.add({ targets: core, angle: -360, alpha: { from: 0.35, to: 0.8 }, duration: 1650, yoyo: true, repeat: -1 });
   }
 
   createBlackHole(x: number, y: number, radius: number, duration: number, damage: number): void {
     const outer = this.add.circle(0, 0, radius, 0x4c2f76, 0.2).setStrokeStyle(3, 0xb387ff, 0.7);
     const core = this.add.image(0, 0, 'black-hole').setScale(radius / 32).setBlendMode(Phaser.BlendModes.ADD);
     const hazard = this.add.container(x, y, [outer, core]) as Hazard;
-    Object.assign(hazard, { kind: 'blackHole', radius, damage, expiresAt: this.time.now + duration, nextTickAt: this.time.now + 200, velocityX: 0, velocityY: 0 });
+    Object.assign(hazard, { kind: 'blackHole', owner: 'player', source: 'blackHole', radius, damage, expiresAt: this.time.now + duration, nextTickAt: this.time.now + 200, velocityX: 0, velocityY: 0 });
     hazard.setDepth(8500);
-    this.hazards.push(hazard);
+    this.registerHazard(hazard);
     this.tweens.add({ targets: core, angle: 360, scaleX: core.scaleX * 1.2, scaleY: core.scaleY * 1.2, duration: 700, yoyo: true, repeat: -1 });
   }
 
@@ -416,6 +506,36 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
     }});
   }
 
+  createDangerRing(x: number, y: number, radius: number, thickness: number, delay: number, damage: number, color = 0xe0a45f): void {
+    if (this.activeWarnings >= 28) return;
+    this.activeWarnings += 1;
+    const warning = this.add.circle(x, y, radius, color, 0.035).setStrokeStyle(thickness, color, 0.76).setDepth(7050);
+    this.tweens.add({ targets: warning, alpha: 0.65, scale: { from: 0.82, to: 1 }, duration: delay, ease: 'Sine.in', onComplete: () => {
+      if (!warning.active) return;
+      const distance = Phaser.Math.Distance.Between(x, y, this.player.x, this.player.y);
+      if (Math.abs(distance - radius) <= thickness * 0.65) this.damagePlayer(damage);
+      this.burst(x + radius, y, color, 12, thickness * 2);
+      warning.destroy();
+      this.activeWarnings = Math.max(0, this.activeWarnings - 1);
+    }});
+  }
+
+  createDangerCone(x: number, y: number, angle: number, range: number, spread: number, delay: number, damage: number, color = 0xc89b66): void {
+    if (this.activeWarnings >= 28) return;
+    this.activeWarnings += 1;
+    const graphics = this.add.graphics().setDepth(7150);
+    graphics.fillStyle(color, 0.12).slice(x, y, range, angle - spread / 2, angle + spread / 2, false).fillPath();
+    graphics.lineStyle(3, color, 0.78).slice(x, y, range, angle - spread / 2, angle + spread / 2, false).strokePath();
+    this.tweens.add({ targets: graphics, alpha: 0.68, duration: delay, onComplete: () => {
+      if (!graphics.active) return;
+      const playerAngle = Phaser.Math.Angle.Between(x, y, this.player.x, this.player.y);
+      if (Math.abs(Phaser.Math.Angle.Wrap(playerAngle - angle)) <= spread / 2 && Phaser.Math.Distance.Between(x, y, this.player.x, this.player.y) <= range) this.damagePlayer(damage);
+      this.burst(x + Math.cos(angle) * range * 0.68, y + Math.sin(angle) * range * 0.68, color, 16, range * 0.32);
+      graphics.destroy();
+      this.activeWarnings = Math.max(0, this.activeWarnings - 1);
+    }});
+  }
+
   createFireCone(x: number, y: number, angle: number, range: number, spread: number, damage: number): void {
     const graphics = this.add.graphics().setDepth(7200);
     graphics.fillStyle(0xff6b3a, 0.13);
@@ -434,7 +554,7 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
         const distance = range * i / 5;
         const burnX = tokenX + Math.cos(angle + Phaser.Math.FloatBetween(-spread / 3, spread / 3)) * distance;
         const burnY = y + Math.sin(angle + Phaser.Math.FloatBetween(-spread / 3, spread / 3)) * distance;
-        this.createBurningGround(burnX, burnY, damage * 0.18);
+        this.createHostileBurningGround(burnX, burnY, damage * 0.18);
       }
     }});
   }
@@ -443,9 +563,9 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
     const core = this.add.image(0, 0, 'projectile-fireball').setScale(2.2).setBlendMode(Phaser.BlendModes.ADD);
     const ring = this.add.circle(0, 0, 36, 0xff6b3d, 0.19).setStrokeStyle(3, 0xffb363, 0.62);
     const hazard = this.add.container(x, y, [ring, core]) as Hazard;
-    Object.assign(hazard, { kind: 'tornado', radius: 44, damage, expiresAt: this.time.now + 6200, nextTickAt: this.time.now + 300, velocityX: velocity.x, velocityY: velocity.y });
+    Object.assign(hazard, { kind: 'tornado', owner: 'enemy', source: 'bossWind', radius: 44, damage, expiresAt: this.time.now + 6200, nextTickAt: this.time.now + 300, velocityX: velocity.x, velocityY: velocity.y });
     hazard.setDepth(9000);
-    this.hazards.push(hazard);
+    this.registerHazard(hazard);
     this.tweens.add({ targets: core, angle: 720, scaleX: 2.8, scaleY: 2.8, duration: 900, yoyo: true, repeat: -1 });
   }
 
@@ -527,6 +647,7 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
     this.isLeveling = false;
     this.hazards = [];
     this.currentBoss = null;
+    this.lastMinibossKind = null;
     this.activeWarnings = 0;
   }
 
@@ -542,6 +663,8 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
     this.physics.add.collider(this.player, this.worldData.breakables);
     this.physics.add.collider(this.player, this.enemies, (_player, object) => this.damagePlayer((object as EnemyActor).damage));
     this.physics.add.collider(this.player, this.bosses, (_player, object) => this.damagePlayer((object as BossActor).damage));
+    this.physics.add.collider(this.bosses, this.worldData.obstacles, (bossObject) => (bossObject as BossActor).onObstacleCollision());
+    this.physics.add.collider(this.bosses, this.worldData.breakables, (bossObject) => (bossObject as BossActor).onObstacleCollision());
     this.physics.add.overlap(this.player, this.enemyProjectiles, (_player, object) => {
       const projectile = object as Projectile;
       if (!projectile.active) return;
@@ -681,13 +804,16 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
   private bossForWave(wave: number): BossKind {
     if (wave === 1) return 'troll';
     if (wave === 2) return 'werewolf';
-    if (wave === 3) return 'troll';
+    if (wave === 3) return 'rooster';
     if (wave === 4) return 'minotaur';
     if (wave === 5) return 'ancientBeast';
     if (wave === 6) return 'wyvern';
     if (wave === 7) return 'troll';
     if (wave === 8) return 'werewolf';
-    if (wave === 9) return Phaser.Utils.Array.GetRandom(['minotaur', 'wyvern'] as BossKind[]);
+    if (wave === 9) {
+      const choices: BossKind[] = ['minotaur', 'wyvern', 'werewolf'];
+      return Phaser.Utils.Array.GetRandom(choices.filter((kind) => kind !== this.lastMinibossKind));
+    }
     return 'dragon';
   }
 
@@ -716,7 +842,7 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
     for (let i = this.hazards.length - 1; i >= 0; i -= 1) {
       const hazard = this.hazards[i];
       if (!hazard.active || time >= hazard.expiresAt) {
-        if (hazard.kind === 'blackHole') {
+        if (hazard.kind === 'blackHole' && hazard.owner === 'player') {
           this.areaDamage(hazard.x, hazard.y, hazard.radius * 1.2, hazard.damage * 4, 'blackHole', { tint: 0xb387ff });
           this.burst(hazard.x, hazard.y, 0xb387ff, 26, 220);
         }
@@ -730,14 +856,19 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
         for (const foe of this.getActiveFoes()) {
           const distance = Phaser.Math.Distance.Between(hazard.x, hazard.y, foe.x, foe.y);
           if (distance < hazard.radius * 1.8 && foe.body instanceof Phaser.Physics.Arcade.Body) {
-            const pull = new Phaser.Math.Vector2(hazard.x - foe.x, hazard.y - foe.y).normalize().scale(90 * (1 - distance / (hazard.radius * 1.8)));
+            const bossResistance = foe instanceof BossActor ? 0.08 : 1;
+            const pull = new Phaser.Math.Vector2(hazard.x - foe.x, hazard.y - foe.y).normalize().scale(90 * bossResistance * (1 - distance / (hazard.radius * 1.8)));
             foe.body.velocity.add(pull);
           }
         }
       }
       if (time >= hazard.nextTickAt) {
         hazard.nextTickAt = time + (hazard.kind === 'poison' ? 500 : 420);
-        if (hazard.kind === 'poison') this.areaDamage(hazard.x, hazard.y, hazard.radius, hazard.damage, 'poison', { slow: 0.62, slowDuration: 700, tint: 0x75d86b });
+        if (hazard.kind === 'poison' && hazard.owner === 'player') this.areaDamage(hazard.x, hazard.y, hazard.radius, hazard.damage, 'poison', { slow: 0.62, slowDuration: 700, tint: 0x75d86b });
+        else if (hazard.kind === 'poison' && hazard.owner === 'enemy' && Phaser.Math.Distance.Between(hazard.x, hazard.y, this.player.x, this.player.y) < hazard.radius) {
+          this.damagePlayer(hazard.damage);
+          this.applyPlayerSlow(0.72, 760);
+        }
         else if (hazard.kind === 'blackHole') this.areaDamage(hazard.x, hazard.y, hazard.radius, hazard.damage, 'blackHole', { tint: 0xb387ff });
         else if (Phaser.Math.Distance.Between(hazard.x, hazard.y, this.player.x, this.player.y) < hazard.radius) this.damagePlayer(hazard.damage);
       }
@@ -745,11 +876,20 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
     }
   }
 
-  private createBurningGround(x: number, y: number, damage: number): void {
+  createHostileBurningGround(x: number, y: number, damage: number): void {
     const core = this.add.circle(0, 0, 26, 0xff642f, 0.25).setStrokeStyle(2, 0xffa154, 0.5);
     const hazard = this.add.container(x, y, [core]) as Hazard;
-    Object.assign(hazard, { kind: 'burning', radius: 30, damage, expiresAt: this.time.now + 4200, nextTickAt: this.time.now + 400, velocityX: 0, velocityY: 0 });
+    Object.assign(hazard, { kind: 'burning', owner: 'enemy', source: 'bossFire', radius: 30, damage, expiresAt: this.time.now + 4200, nextTickAt: this.time.now + 400, velocityX: 0, velocityY: 0 });
     hazard.setDepth(y - 2);
+    this.registerHazard(hazard);
+  }
+
+  private registerHazard(hazard: Hazard): void {
+    const limit = 42;
+    if (this.hazards.length >= limit) {
+      const oldest = this.hazards.shift();
+      oldest?.destroy(true);
+    }
     this.hazards.push(hazard);
   }
 
@@ -816,11 +956,18 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
   private debugState(): PickupDebugState {
     return {
       scene: this.scene.key,
-      player: { x: this.player.x, y: this.player.y, hp: this.player.stats.hp, maxHp: this.player.stats.maxHp, dashing: this.player.isDashing },
+      player: { x: this.player.x, y: this.player.y, hp: this.player.stats.hp, maxHp: this.player.stats.maxHp, dashing: this.player.isDashing, movementModifier: this.player.getMovementModifier(this.time.now) },
       wave: this.wave,
       enemies: this.enemies.countActive(true),
+      enemyKinds: [...new Set(this.enemies.getChildren().filter((object) => (object as EnemyActor).active).map((object) => (object as EnemyActor).kind))],
       bosses: this.bosses.countActive(true),
-      boss: this.currentBoss?.active ? { kind: this.currentBoss.kind, phase: this.currentBoss.phase, hp: this.currentBoss.hp, maxHp: this.currentBoss.maxHp } : null,
+      boss: this.currentBoss?.active ? { kind: this.currentBoss.kind, phase: this.currentBoss.phase, hp: this.currentBoss.hp, maxHp: this.currentBoss.maxHp, lastAttack: this.currentBoss.lastAttack, attacksUsed: [...this.currentBoss.attacksUsed], specialState: this.currentBoss.specialState } : null,
+      hazards: {
+        total: this.hazards.length,
+        player: this.hazards.filter((hazard) => hazard.owner === 'player').length,
+        enemy: this.hazards.filter((hazard) => hazard.owner === 'enemy').length,
+      },
+      projectiles: { player: this.playerProjectiles.countActive(true), enemy: this.enemyProjectiles.countActive(true) },
       level: this.xpSystem.level,
       xp: this.xpSystem.xp,
       abilities: this.abilities.getOwnedStates(this.time.now).map((state) => `${state.id}:${state.level}`),
@@ -861,6 +1008,26 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
     });
     this.input.keyboard?.on('keydown-F10', () => !this.currentBoss && this.startWave(5));
     this.input.keyboard?.on('keydown-F11', () => !this.currentBoss && this.startWave(10));
+    this.input.keyboard?.on('keydown-R', () => !this.currentBoss && this.spawnBoss('rooster'));
+    this.input.keyboard?.on('keydown-T', () => !this.currentBoss && this.spawnBoss('troll'));
+    this.input.keyboard?.on('keydown-M', () => !this.currentBoss && this.spawnBoss('minotaur'));
+    this.input.keyboard?.on('keydown-V', () => !this.currentBoss && this.spawnBoss('werewolf'));
+    this.input.keyboard?.on('keydown-Y', () => !this.currentBoss && this.spawnBoss('wyvern'));
+    this.input.keyboard?.on('keydown-P', () => this.createPoisonPool(this.player.x, this.player.y, 126, 5200, 18));
+    this.input.keyboard?.on('keydown-O', () => this.createEnemyPoisonPool(this.player.x, this.player.y, 110, 5200, 8));
+    this.input.keyboard?.on('keydown-H', () => {
+      this.player.heal(this.player.stats.maxHp);
+      this.player.grantInvulnerability(30_000, this.time.now);
+    });
+    this.input.keyboard?.on('keydown-G', () => {
+      for (const object of this.enemies.getChildren()) (object as EnemyActor).retire();
+      if (this.currentBoss?.active) this.currentBoss.retire();
+      this.currentBoss = null;
+      this.hazards.forEach((hazard) => hazard.destroy(true));
+      this.hazards = [];
+      this.startWave(3);
+    });
+    this.input.keyboard?.on('keydown-B', () => !this.currentBoss && this.spawnBoss(this.bossForWave(this.wave)));
     this.input.keyboard?.on('keydown-U', () => {
       const ids: AbilityId[] = ['bolt', 'orb', 'meteor', 'poison', 'shuriken', 'laser', 'arrow', 'lightning', 'fireRing', 'iceStorm', 'blackHole'];
       for (const id of ids) while (this.abilities.getLevel(id) < 8) this.abilities.upgrade(id);

@@ -158,6 +158,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.scene.time.delayedCall(durationMs, () => this.active && this.clearTint());
   }
 
+  getMovementModifier(time: number): number {
+    return time < this.hinderedUntil ? this.hinderMultiplier : 1;
+  }
+
+  grantInvulnerability(durationMs: number, time: number): void {
+    this.invulnerableUntil = Math.max(this.invulnerableUntil, time + durationMs);
+  }
+
   private beginDash(time: number): void {
     if (this.movement.lengthSq() > 0) {
       this.dashVector.copy(this.movement);

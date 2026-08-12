@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
-import type { AbilityId } from '../types';
+import type { AbilityId, Faction } from '../types';
 
-export type ProjectileOwner = 'player' | 'enemy';
+export type ProjectileOwner = Faction;
 
 export interface ProjectileConfig {
   x: number;
