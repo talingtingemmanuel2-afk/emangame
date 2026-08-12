@@ -14,13 +14,28 @@ export const PLAYER = {
 
 export const COMBAT = {
   magicBoltDamage: 22,
-  magicBoltCooldown: 620,
+  magicBoltCooldown: 390,
   projectileSpeed: 520,
   criticalChance: 0.08,
   criticalMultiplier: 1.85,
   maxEnemies: 155,
   maxProjectiles: 96,
   maxGems: 180,
+} as const;
+
+// Offensive skill cadence is intentionally per-ability. `base` is the level-1
+// delay, `perLevel` applies at levels 2-7, and `evolved` is the level-8 delay.
+export const ABILITY_COOLDOWNS = {
+  bolt:      { base: 390,  perLevel: 0.945, evolved: 245,  minimum: 190 },
+  meteor:    { base: 5100, perLevel: 0.925, evolved: 2450, minimum: 1900 },
+  poison:    { base: 4400, perLevel: 0.930, evolved: 2250, minimum: 1750 },
+  shuriken:  { base: 1200, perLevel: 0.920, evolved: 480,  minimum: 340 },
+  laser:     { base: 3700, perLevel: 0.925, evolved: 1650, minimum: 1250 },
+  arrow:     { base: 4450, perLevel: 0.930, evolved: 2100, minimum: 1550 },
+  lightning: { base: 3100, perLevel: 0.920, evolved: 1325, minimum: 1000 },
+  fireRing:  { base: 4200, perLevel: 0.930, evolved: 1950, minimum: 1450 },
+  iceStorm:  { base: 4000, perLevel: 0.925, evolved: 1750, minimum: 1350 },
+  blackHole: { base: 8700, perLevel: 0.940, evolved: 4600, minimum: 3500 },
 } as const;
 
 export const WAVES = {

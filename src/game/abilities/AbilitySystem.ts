@@ -4,6 +4,7 @@ import type { AbilityId, AbilityState } from '../types';
 import type { EnemyActor } from '../entities/EnemyActor';
 import type { BossActor } from '../entities/BossActor';
 import type { Player } from '../entities/Player';
+import { ABILITY_COOLDOWNS } from '../config/balance';
 
 export type Foe = EnemyActor | BossActor;
 
@@ -46,6 +47,7 @@ export class AbilitySystem {
     bolt: 0, meteor: 0, poison: 0, shuriken: 0, laser: 0,
     arrow: 0, lightning: 0, fireRing: 0, iceStorm: 0, blackHole: 0,
   };
+  private readonly lastCooldown = new Map<keyof Cooldowns, number>();
   private readonly orbs: Phaser.GameObjects.Image[] = [];
   private orbAngle = 0;
   private readonly orbHitTimes = new Map<number, number>();
@@ -132,7 +134,7 @@ export class AbilitySystem {
       });
     }
     this.host.playSfx('bolt', 0.22);
-    this.nextUse.bolt = time + Math.max(180, (620 - level * 28) * cooldownMultiplier);
+    this.setNextUse('bolt', time, level, cooldownMultiplier);
   }
 
   private updateOrbs(time: number, delta: number): void {
@@ -170,7 +172,7 @@ export class AbilitySystem {
       const y = target.y + Phaser.Math.Between(-80, 80);
       this.createMeteor(x, y, level, i * 150);
     }
-    this.nextUse.meteor = time + Math.max(2600, (8200 - level * 430) * cooldownMultiplier);
+    this.setNextUse('meteor', time, level, cooldownMultiplier);
   }
 
   private createMeteor(x: number, y: number, level: number, extraDelay: number): void {
@@ -205,7 +207,7 @@ export class AbilitySystem {
         this.host.createPoisonPool(target.x, target.y, (55 + level * 7) * this.visualScale(level) * this.ancient.poisonSize, 3800 + level * 420, 8 + level * 5);
       },
     });
-    this.nextUse.poison = time + Math.max(2400, (7000 - level * 360) * cooldownMultiplier);
+    this.setNextUse('poison', time, level, cooldownMultiplier);
   }
 
   private useShuriken(time: number, cooldownMultiplier: number): void {
@@ -223,7 +225,7 @@ export class AbilitySystem {
         tint: 0xffe496, ability: 'shuriken', rotate: 800,
       });
     }
-    this.nextUse.shuriken = time + Math.max(500, (1900 - level * 115) * cooldownMultiplier);
+    this.setNextUse('shuriken', time, level, cooldownMultiplier);
   }
 
   private useLaser(time: number, cooldownMultiplier: number): void {
@@ -251,7 +253,7 @@ export class AbilitySystem {
         }
       }
     }
-    this.nextUse.laser = time + Math.max(1900, (6000 - level * 320) * cooldownMultiplier);
+    this.setNextUse('laser', time, level, cooldownMultiplier);
   }
 
   private useArrow(time: number, cooldownMultiplier: number): void {
@@ -267,7 +269,7 @@ export class AbilitySystem {
         ability: 'arrow', bounce: true,
       });
     }
-    this.nextUse.arrow = time + Math.max(2200, (7200 - level * 400) * cooldownMultiplier);
+    this.setNextUse('arrow', time, level, cooldownMultiplier);
   }
 
   private useLightning(time: number, cooldownMultiplier: number): void {
@@ -299,7 +301,7 @@ export class AbilitySystem {
       current = this.host.getActiveFoes().filter((foe) => !visited.has(foe) && Phaser.Math.Distance.Between(from.x, from.y, foe.x, foe.y) < 115 + level * 10)
         .sort((a, b) => Phaser.Math.Distance.Squared(from.x, from.y, a.x, a.y) - Phaser.Math.Distance.Squared(from.x, from.y, b.x, b.y))[0] ?? null;
     }
-    this.nextUse.lightning = time + Math.max(1500, (5000 - level * 275) * cooldownMultiplier);
+    this.setNextUse('lightning', time, level, cooldownMultiplier);
   }
 
   private useFireRing(time: number, cooldownMultiplier: number): void {
@@ -310,7 +312,7 @@ export class AbilitySystem {
     this.scene.tweens.add({ targets: ring, radius, alpha: 0, duration: 420, onComplete: () => ring.destroy() });
     this.host.areaDamage(this.host.player.x, this.host.player.y, radius, 26 + level * 12, 'fireRing', { tint: 0xff804d });
     this.host.burst(this.host.player.x, this.host.player.y, 0xff804d, 22, 180);
-    this.nextUse.fireRing = time + Math.max(2500, (6800 - level * 360) * cooldownMultiplier);
+    this.setNextUse('fireRing', time, level, cooldownMultiplier);
   }
 
   private useIceStorm(time: number, cooldownMultiplier: number): void {
@@ -324,7 +326,7 @@ export class AbilitySystem {
         this.host.areaDamage(foe.x, foe.y, (35 + level * 4) * this.visualScale(level), 18 + level * 8, 'iceStorm', { slow: 0.55, slowDuration: 1900 + level * 180, tint: 0xa8efff });
       }});
     }
-    this.nextUse.iceStorm = time + Math.max(2300, (6500 - level * 330) * cooldownMultiplier);
+    this.setNextUse('iceStorm', time, level, cooldownMultiplier);
   }
 
   private useBlackHole(time: number, cooldownMultiplier: number): void {
@@ -333,7 +335,7 @@ export class AbilitySystem {
     const target = this.host.findDenseFoe();
     if (!target) return;
     this.host.createBlackHole(target.x, target.y, (95 + level * 8) * this.visualScale(level), 2600 + level * 220, 8 + level * 5);
-    this.nextUse.blackHole = time + Math.max(6500, (14_000 - level * 650) * cooldownMultiplier);
+    this.setNextUse('blackHole', time, level, cooldownMultiplier);
   }
 
   private syncOrbs(): void {
@@ -348,7 +350,16 @@ export class AbilitySystem {
   private cooldownProgress(id: AbilityId, time: number): number {
     if (id === 'orb') return 1;
     const next = this.nextUse[id as keyof Cooldowns];
-    return next == null ? 1 : Phaser.Math.Clamp(1 - Math.max(0, next - time) / 8000, 0, 1);
+    const duration = this.lastCooldown.get(id as keyof Cooldowns) ?? 1000;
+    return next == null ? 1 : Phaser.Math.Clamp(1 - Math.max(0, next - time) / duration, 0, 1);
+  }
+
+  private setNextUse(id: keyof Cooldowns, time: number, level: number, multiplier: number): void {
+    const tuning = ABILITY_COOLDOWNS[id];
+    const raw = level >= 8 ? tuning.evolved : tuning.base * Math.pow(tuning.perLevel, Math.max(0, level - 1));
+    const duration = Math.max(tuning.minimum, raw * multiplier);
+    this.lastCooldown.set(id, duration);
+    this.nextUse[id] = time + duration;
   }
 
   private visualScale(level: number): number {

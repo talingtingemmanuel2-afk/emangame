@@ -681,13 +681,13 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
   private bossForWave(wave: number): BossKind {
     if (wave === 1) return 'troll';
     if (wave === 2) return 'werewolf';
-    if (wave === 3) return 'snake';
+    if (wave === 3) return 'troll';
     if (wave === 4) return 'minotaur';
     if (wave === 5) return 'ancientBeast';
     if (wave === 6) return 'wyvern';
     if (wave === 7) return 'troll';
     if (wave === 8) return 'werewolf';
-    if (wave === 9) return Phaser.Utils.Array.GetRandom(['minotaur', 'wyvern', 'snake'] as BossKind[]);
+    if (wave === 9) return Phaser.Utils.Array.GetRandom(['minotaur', 'wyvern'] as BossKind[]);
     return 'dragon';
   }
 
