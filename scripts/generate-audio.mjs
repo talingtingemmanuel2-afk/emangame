@@ -451,6 +451,87 @@ function fireSfx() {
   return finish(target, 0.79);
 }
 
+function roosterCrySfx() {
+  const target = buffer(1.18);
+  addTone(target, { duration: 0.46, from: 780, to: 410, volume: 0.34, wave: 'saw', attack: 0.025, release: 0.12, tremolo: 0.42, tremoloRate: 18 });
+  addTone(target, { start: 0.36, duration: 0.74, from: 620, to: 940, volume: 0.3, wave: 'triangle', attack: 0.04, release: 0.3, tremolo: 0.34, tremoloRate: 12 });
+  addNoise(target, { start: 0.02, duration: 0.88, volume: 0.12, release: 0.28, color: 0.73, crackle: 35 });
+  return finish(target, 0.8);
+}
+
+function roosterPeckSfx() {
+  const target = buffer(0.3);
+  [0, 0.075, 0.15].forEach((start, index) => {
+    addTone(target, { start, duration: 0.09, from: 1_650 - index * 170, to: 480, volume: 0.32, wave: 'square', release: 0.06 });
+    addNoise(target, { start, duration: 0.055, volume: 0.22, release: 0.04, color: 0.28 });
+  });
+  return finish(target, 0.82, 0.002);
+}
+
+function featherStormSfx() {
+  const target = buffer(0.86);
+  addNoise(target, { duration: 0.82, volume: 0.33, attack: 0.035, release: 0.22, color: 0.68 });
+  addTone(target, { duration: 0.78, from: 1_700, to: 340, volume: 0.18, wave: 'sine', release: 0.2, tremolo: 0.74, tremoloRate: 28 });
+  addTone(target, { start: 0.16, duration: 0.58, from: 520, to: 1_420, volume: 0.11, wave: 'triangle', release: 0.18, tremolo: 0.55, tremoloRate: 19 });
+  return finish(target, 0.76);
+}
+
+function trollRoarSfx() {
+  const target = buffer(1.42);
+  addTone(target, { duration: 1.34, from: 104, to: 54, volume: 0.48, wave: 'saw', attack: 0.11, release: 0.44, tremolo: 0.6, tremoloRate: 11, harmonics: [[1, 1], [2, 0.3], [3, 0.18]] });
+  addTone(target, { start: 0.18, duration: 1.05, from: 72, to: 39, volume: 0.28, wave: 'triangle', release: 0.4, tremolo: 0.4, tremoloRate: 7 });
+  addNoise(target, { start: 0.08, duration: 1.22, volume: 0.2, attack: 0.1, release: 0.4, color: 0.9, crackle: 26 });
+  return finish(target, 0.88);
+}
+
+function hoofChargeSfx() {
+  const target = buffer(0.78);
+  [0, 0.17, 0.31, 0.43, 0.54].forEach((start, index) => addDrum(target, start, 0.34 + index * 0.055, 175 - index * 13));
+  addNoise(target, { start: 0.05, duration: 0.67, volume: 0.19, attack: 0.03, release: 0.2, color: 0.86, crackle: 115 });
+  return finish(target, 0.84);
+}
+
+function axeSpinSfx() {
+  const target = buffer(0.92);
+  addNoise(target, { duration: 0.88, volume: 0.3, attack: 0.04, release: 0.22, color: 0.63 });
+  addTone(target, { duration: 0.85, from: 310, to: 1_280, volume: 0.19, wave: 'triangle', attack: 0.02, release: 0.2, tremolo: 0.85, tremoloRate: 9 });
+  addTone(target, { start: 0.12, duration: 0.68, from: 1_400, to: 260, volume: 0.14, wave: 'sine', release: 0.18, tremolo: 0.7, tremoloRate: 12 });
+  return finish(target, 0.78);
+}
+
+function werewolfHowlSfx() {
+  const target = buffer(1.52);
+  addTone(target, { start: 0.05, duration: 1.4, from: 235, to: 510, volume: 0.36, wave: 'triangle', attack: 0.25, release: 0.48, tremolo: 0.24, tremoloRate: 5.5, harmonics: [[1, 1], [2, 0.2], [3, 0.06]] });
+  addTone(target, { start: 0.38, duration: 0.96, from: 520, to: 430, volume: 0.17, wave: 'sine', attack: 0.14, release: 0.4, tremolo: 0.18, tremoloRate: 6.7 });
+  return finish(target, 0.8);
+}
+
+function wyvernWingSfx() {
+  const target = buffer(0.74);
+  [0, 0.24, 0.48].forEach((start) => {
+    addNoise(target, { start, duration: 0.25, volume: 0.38, attack: 0.035, release: 0.16, color: 0.78 });
+    addTone(target, { start, duration: 0.22, from: 210, to: 72, volume: 0.15, wave: 'sine', release: 0.16 });
+  });
+  return finish(target, 0.78);
+}
+
+function tornadoWindSfx() {
+  const target = buffer(1.12);
+  addNoise(target, { duration: 1.08, volume: 0.36, attack: 0.06, release: 0.25, color: 0.91 });
+  addTone(target, { duration: 1.04, from: 160, to: 760, volume: 0.16, wave: 'sine', attack: 0.04, release: 0.23, tremolo: 0.8, tremoloRate: 16 });
+  addTone(target, { start: 0.12, duration: 0.86, from: 930, to: 185, volume: 0.1, wave: 'triangle', release: 0.24, tremolo: 0.65, tremoloRate: 21 });
+  return finish(target, 0.76);
+}
+
+function bossDeathSfx() {
+  const target = buffer(1.48);
+  addTone(target, { duration: 1.38, from: 260, to: 38, volume: 0.42, wave: 'saw', attack: 0.015, release: 0.5, tremolo: 0.35, tremoloRate: 8 });
+  addTone(target, { start: 0.12, duration: 1.16, from: 390, to: 62, volume: 0.2, wave: 'triangle', release: 0.48 });
+  addDrum(target, 0.04, 0.62, 128); addDrum(target, 0.48, 0.4, 86);
+  addNoise(target, { start: 0.08, duration: 1.28, volume: 0.2, release: 0.5, color: 0.9, crackle: 52 });
+  return finish(target, 0.86);
+}
+
 function clickSfx() {
   const target = buffer(0.105);
   addTone(target, { duration: 0.09, from: 920, to: 520, volume: 0.34, wave: 'triangle', attack: 0.001, release: 0.07 });
@@ -504,6 +585,16 @@ const assets = [
   ['sfx-wolf.wav', wolfSfx],
   ['sfx-dragon-roar.wav', dragonRoarSfx],
   ['sfx-fire.wav', fireSfx],
+  ['sfx-rooster-cry.wav', roosterCrySfx],
+  ['sfx-rooster-peck.wav', roosterPeckSfx],
+  ['sfx-feather-storm.wav', featherStormSfx],
+  ['sfx-troll-roar.wav', trollRoarSfx],
+  ['sfx-hoof-charge.wav', hoofChargeSfx],
+  ['sfx-axe-spin.wav', axeSpinSfx],
+  ['sfx-werewolf-howl.wav', werewolfHowlSfx],
+  ['sfx-wyvern-wing.wav', wyvernWingSfx],
+  ['sfx-tornado-wind.wav', tornadoWindSfx],
+  ['sfx-boss-death.wav', bossDeathSfx],
   ['sfx-click.wav', clickSfx],
 ];
 

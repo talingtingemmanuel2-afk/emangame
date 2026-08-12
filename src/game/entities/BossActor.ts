@@ -207,7 +207,8 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
       this.setVelocity(0);
       this.dying = true;
       (this.body as Phaser.Physics.Arcade.Body).setEnable(false);
-      this.host.playSfx(this.kind === 'rooster' ? 'rooster-cry' : 'death', 0.78);
+      this.host.playSfx('boss-death', 0.82);
+      if (this.kind === 'rooster') this.host.playSfx('rooster-cry', 0.46);
       this.host.burst(this.x, this.y, BOSS_COLORS[this.kind], 34, 230);
       const token = this.generation;
       this.scene.tweens.add({ targets: this, angle: this.flipX ? -88 : 88, y: this.y + 24, alpha: 0.15, scaleX: this.scaleX * 1.18, scaleY: this.scaleY * 0.72, duration: 680, ease: 'Quad.in' });
@@ -330,6 +331,7 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
       this.host.playSfx('rock', 0.58);
     } else if (choice === 2) {
       this.announceAttack(this.kind === 'troll' ? 'Rampage Combo' : 'Granite Rush', 0xa7ca70);
+      if (this.kind === 'troll') this.host.playSfx('troll-roar', 0.54);
       this.telegraphCharge(direction, 620, this.kind === 'troll' && this.phase >= 2 ? 510 : 390, 520);
       if (this.kind === 'troll') {
         this.scene.time.delayedCall(900, () => this.active && this.host.createDangerCone(this.x, this.y, direction.angle(), 190, 1.55, 460, this.damage, 0xa7ca70));
@@ -365,7 +367,7 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
     }
     else if (choice === 2) {
       this.announceAttack('Moonfang Howl', 0xd9d3ff);
-      this.host.playSfx('wolf', 0.8); this.host.burst(this.x, this.y, 0xd9d3ff, 24, 160);
+      this.host.playSfx('werewolf-howl', 0.8); this.host.burst(this.x, this.y, 0xd9d3ff, 24, 160);
       for (let i = 1; i <= 3; i += 1) this.host.createDangerRing(this.x, this.y, i * 54, 12, 350 + i * 140, this.damage * 0.3, 0xc6b9f4);
       this.attackBuffUntil = time + (this.phase >= 2 ? 7200 : 4200);
     }
@@ -381,11 +383,13 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
     const choice = this.attackIndex % 4;
     if (choice === 0) {
       this.announceAttack('Labyrinth Charge', 0xffa253);
+      this.host.playSfx('hoof-charge', 0.72);
       this.host.createDangerLine(this.x, this.y, direction.angle(), 660, 92, 900, this.damage * 1.4, 0xffa253);
       this.telegraphCharge(direction, 900, this.phase >= 2 ? 820 : 720, 720);
     }
     else if (choice === 1) {
       this.announceAttack('Axe Cyclone', 0xf7c172);
+      this.host.playSfx('axe-spin', 0.72);
       for (let i = 0; i < 3; i += 1) this.scene.time.delayedCall(i * 260, () => this.active && this.host.createDangerRing(this.x, this.y, 105 + i * 20, 52, 420, this.damage * 0.72, 0xf7c172));
       this.scene.tweens.add({ targets: this, angle: this.flipX ? -720 : 720, duration: 1250, onComplete: () => this.active && this.setAngle(0) });
       this.chargeUntil = time + 1150; this.chargeVelocity.copy(direction).scale(185);
@@ -406,10 +410,12 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
     const choice = this.attackIndex % 5;
     if (choice === 0) {
       this.announceAttack('Fireball Fan', 0xff8b52);
+      this.host.playSfx('fire', 0.66);
       this.host.fireEnemyProjectile(this.x, this.y, this.host.player.x, this.host.player.y, { texture: 'projectile-fireball', speed: 285, damage: this.damage, spread: 0.17, count: this.phase >= 2 ? 7 : 5, scale: 1.05 });
     }
     else if (choice === 1) {
       this.announceAttack('Sky Sweep', 0xffad5e);
+      this.host.playSfx('wyvern-wing', 0.72);
       this.host.createDangerLine(this.x, this.y, direction.angle(), 620, 82, 720, this.damage * 1.18, 0xffad5e);
       this.telegraphCharge(direction, 700, 780, 420, true);
     }
@@ -424,10 +430,12 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
     }
     else if (choice === 3) {
       this.announceAttack('Cinder Gale', 0xeb7151);
+      this.host.playSfx('tornado-wind', 0.68);
       this.host.createMovingHazard(this.x, this.y, direction.clone().rotate(0.6).scale(105), this.damage * 0.7);
     }
     else {
       this.announceAttack('Inferno Dive', 0xff653f);
+      this.host.playSfx('fire', 0.76);
       const targetX = this.host.player.x + Phaser.Math.Between(-40, 40);
       const targetY = this.host.player.y + Phaser.Math.Between(-40, 40);
       this.host.createDangerCircle(targetX, targetY, this.phase >= 2 ? 105 : 82, 920, this.damage * 1.38, 0xff693f);

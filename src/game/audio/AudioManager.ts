@@ -29,6 +29,11 @@ export const SFX_KEYS = [
   'feather-storm',
   'troll-roar',
   'wyvern-wing',
+  'hoof-charge',
+  'axe-spin',
+  'werewolf-howl',
+  'tornado-wind',
+  'boss-death',
   'click',
 ] as const;
 
@@ -90,11 +95,16 @@ const SFX_ASSETS: Record<SfxKey, AudioAsset> = {
   curse: { cacheKey: 'gg-sfx-curse', filename: 'sfx-teleport.wav' },
   'boss-charge': { cacheKey: 'gg-sfx-boss-charge', filename: 'sfx-slam.wav' },
   bone: { cacheKey: 'gg-sfx-bone', filename: 'sfx-rock.wav' },
-  'rooster-cry': { cacheKey: 'gg-sfx-rooster-cry', filename: 'sfx-wolf.wav' },
-  'rooster-peck': { cacheKey: 'gg-sfx-rooster-peck', filename: 'sfx-hit.wav' },
-  'feather-storm': { cacheKey: 'gg-sfx-feather-storm', filename: 'sfx-bolt.wav' },
-  'troll-roar': { cacheKey: 'gg-sfx-troll-roar', filename: 'sfx-dragon-roar.wav' },
-  'wyvern-wing': { cacheKey: 'gg-sfx-wyvern-wing', filename: 'sfx-dash.wav' },
+  'rooster-cry': { cacheKey: 'gg-sfx-rooster-cry', filename: 'sfx-rooster-cry.wav' },
+  'rooster-peck': { cacheKey: 'gg-sfx-rooster-peck', filename: 'sfx-rooster-peck.wav' },
+  'feather-storm': { cacheKey: 'gg-sfx-feather-storm', filename: 'sfx-feather-storm.wav' },
+  'troll-roar': { cacheKey: 'gg-sfx-troll-roar', filename: 'sfx-troll-roar.wav' },
+  'wyvern-wing': { cacheKey: 'gg-sfx-wyvern-wing', filename: 'sfx-wyvern-wing.wav' },
+  'hoof-charge': { cacheKey: 'gg-sfx-hoof-charge', filename: 'sfx-hoof-charge.wav' },
+  'axe-spin': { cacheKey: 'gg-sfx-axe-spin', filename: 'sfx-axe-spin.wav' },
+  'werewolf-howl': { cacheKey: 'gg-sfx-werewolf-howl', filename: 'sfx-werewolf-howl.wav' },
+  'tornado-wind': { cacheKey: 'gg-sfx-tornado-wind', filename: 'sfx-tornado-wind.wav' },
+  'boss-death': { cacheKey: 'gg-sfx-boss-death', filename: 'sfx-boss-death.wav' },
   click: { cacheKey: 'gg-sfx-click', filename: 'sfx-click.wav' },
 };
 
