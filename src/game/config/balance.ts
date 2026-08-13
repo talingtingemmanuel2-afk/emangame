@@ -23,16 +23,18 @@ export const COMBAT = {
   maxEnemies: 110,
   maxProjectiles: 96,
   maxGems: 180,
+  playerAbilityDamageMultiplier: 1.16,
+  playerAbilityVisualMultiplier: 1.24,
 } as const;
 
 export const ENEMY_BALANCE = {
-  hpPerWave: 0.09,
-  damagePerWave: 0.02,
+  hpPerWave: 0.105,
+  damagePerWave: 0.024,
   xpPerWave: 0.045,
   eliteFirstWave: 6,
-  eliteBaseChance: 0.014,
-  eliteChancePerWave: 0.005,
-  eliteMaxChance: 0.15,
+  eliteBaseChance: 0.018,
+  eliteChancePerWave: 0.007,
+  eliteMaxChance: 0.19,
   eliteHpMultiplier: 1.9,
   armoredHpMultiplier: 2.45,
   eliteDamageMultiplier: 1.2,
@@ -66,10 +68,10 @@ export const WAVE_TUNING: Record<number, WaveTuning> = {
   3: { spawnIntervalMs: 1000, maxActiveEnemies: 50, maxRangedAttackers: 4, bossAtSeconds: 56 },
   4: { spawnIntervalMs: 920, maxActiveEnemies: 58, maxRangedAttackers: 4, bossAtSeconds: 57 },
   5: { spawnIntervalMs: 0, maxActiveEnemies: 0, maxRangedAttackers: 4, bossAtSeconds: 4 },
-  6: { spawnIntervalMs: 1050, maxActiveEnemies: 52, maxRangedAttackers: 4, bossAtSeconds: 58 },
-  7: { spawnIntervalMs: 850, maxActiveEnemies: 65, maxRangedAttackers: 5, bossAtSeconds: 59 },
-  8: { spawnIntervalMs: 760, maxActiveEnemies: 75, maxRangedAttackers: 5, bossAtSeconds: 60 },
-  9: { spawnIntervalMs: 690, maxActiveEnemies: 85, maxRangedAttackers: 6, bossAtSeconds: 60 },
+  6: { spawnIntervalMs: 940, maxActiveEnemies: 58, maxRangedAttackers: 5, bossAtSeconds: 58 },
+  7: { spawnIntervalMs: 760, maxActiveEnemies: 72, maxRangedAttackers: 5, bossAtSeconds: 59 },
+  8: { spawnIntervalMs: 660, maxActiveEnemies: 84, maxRangedAttackers: 6, bossAtSeconds: 60 },
+  9: { spawnIntervalMs: 590, maxActiveEnemies: 96, maxRangedAttackers: 7, bossAtSeconds: 60 },
   10: { spawnIntervalMs: 0, maxActiveEnemies: 0, maxRangedAttackers: 6, bossAtSeconds: 4 },
 };
 
@@ -84,7 +86,8 @@ export interface BossTuning {
 
 export const BOSS_BALANCE: Record<BossKind, BossTuning> = {
   golem:        { hp: 760, damage: 14, hitboxRadius: 40, moveSpeed: 58, cadence: 3100, enragedCadence: 2500 },
-  vampire:      { hp: 720, damage: 14, hitboxRadius: 30, moveSpeed: 88, cadence: 2800, enragedCadence: 2200 },
+  vampire:      { hp: 2100, damage: 17, hitboxRadius: 36, moveSpeed: 96, cadence: 2700, enragedCadence: 2050 },
+  darkMage:     { hp: 2250, damage: 18, hitboxRadius: 36, moveSpeed: 72, cadence: 2750, enragedCadence: 2150 },
   rooster:      { hp: 1800, damage: 15, hitboxRadius: 34, moveSpeed: 98, cadence: 2500, enragedCadence: 1900 },
   troll:        { hp: 1700, damage: 17, hitboxRadius: 42, moveSpeed: 48, cadence: 3400, enragedCadence: 2600 },
   werewolf:     { hp: 1350, damage: 14, hitboxRadius: 38, moveSpeed: 118, cadence: 2500, enragedCadence: 1950 },
@@ -95,8 +98,8 @@ export const BOSS_BALANCE: Record<BossKind, BossTuning> = {
 };
 
 export const BOSS_SCALING = {
-  hpPerWave: 0.09,
-  damagePerWave: 0.02,
+  hpPerWave: 0.105,
+  damagePerWave: 0.024,
   enragedMoveSpeedMultiplier: 1.08,
   phaseBurstMoveSpeedMultiplier: 1.12,
   infernoCooldownMs: 18_000,

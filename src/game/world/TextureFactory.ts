@@ -362,6 +362,64 @@ function createIcon(
 }
 
 function createBossRigTextures(scene: Phaser.Scene): void {
+  // Lady Vespera: a tall humanoid vampire with a divided wing-like cape.
+  createTexture(scene, 'rig-vampire-cape', 42, 58, (context) => {
+    polygon(context, PALETTE.ink, [[19, 1], [35, 7], [42, 26], [35, 55], [24, 43], [13, 58], [4, 34], [0, 14]]);
+    polygon(context, '#351d4d', [[19, 5], [32, 10], [38, 27], [33, 49], [23, 38], [14, 52], [8, 32], [4, 16]]);
+    pixelLine(context, '#a23d70', 2, [[18, 8], [30, 40], [23, 38], [15, 50]]);
+  });
+  createTexture(scene, 'rig-vampire-body', 38, 52, (context) => {
+    polygon(context, PALETTE.ink, [[10, 0], [28, 0], [36, 12], [33, 45], [25, 52], [19, 43], [12, 52], [3, 44], [2, 12]]);
+    polygon(context, '#3d234f', [[11, 4], [27, 4], [32, 14], [29, 42], [23, 47], [19, 37], [13, 47], [7, 41], [6, 14]]);
+    polygon(context, '#a52e50', [[9, 8], [19, 18], [29, 8], [25, 34], [19, 42], [13, 34]]);
+    rect(context, PALETTE.redLight, 17, 17, 4, 22);
+  });
+  createTexture(scene, 'rig-vampire-head', 32, 30, (context) => {
+    polygon(context, PALETTE.ink, [[5, 7], [12, 0], [17, 4], [23, 0], [29, 8], [30, 20], [23, 29], [10, 29], [2, 20]]);
+    polygon(context, PALETTE.bone, [[7, 8], [15, 4], [25, 7], [27, 18], [21, 25], [11, 24], [5, 18]]);
+    rect(context, PALETTE.redLight, 8, 13, 6, 3); rect(context, PALETTE.redLight, 20, 13, 6, 3);
+    polygon(context, PALETTE.white, [[11, 22], [14, 28], [16, 21]]); polygon(context, PALETTE.white, [[19, 21], [21, 28], [23, 22]]);
+  });
+  createTexture(scene, 'rig-vampire-arm', 14, 42, (context) => {
+    polygon(context, PALETTE.ink, [[3, 0], [11, 0], [14, 28], [10, 42], [3, 40], [0, 27]]);
+    polygon(context, '#70304f', [[5, 3], [9, 3], [11, 28], [8, 38], [5, 37], [3, 27]]);
+  });
+  createTexture(scene, 'rig-vampire-leg', 14, 40, (context) => {
+    polygon(context, PALETTE.ink, [[2, 0], [12, 0], [11, 31], [14, 38], [7, 40], [0, 38], [4, 30]]);
+    rect(context, '#422644', 4, 3, 6, 29); rect(context, PALETTE.redDark, 2, 31, 10, 5);
+  });
+
+  // Mordrath: exposed skull, deep hood, skeletal arms, robe, and a crystal staff.
+  createTexture(scene, 'rig-darkmage-robe', 44, 58, (context) => {
+    polygon(context, PALETTE.ink, [[12, 0], [32, 0], [42, 18], [38, 54], [29, 49], [22, 58], [15, 49], [5, 55], [1, 18]]);
+    polygon(context, '#292245', [[13, 4], [31, 4], [37, 19], [34, 49], [28, 45], [22, 53], [16, 45], [9, 50], [6, 19]]);
+    pixelLine(context, '#7654d6', 3, [[22, 8], [22, 45]]);
+    rect(context, '#a98cff', 17, 22, 10, 4);
+  });
+  createTexture(scene, 'rig-darkmage-skull', 32, 28, (context) => {
+    polygon(context, PALETTE.ink, [[5, 3], [25, 1], [31, 9], [28, 21], [21, 27], [10, 26], [2, 19], [1, 9]]);
+    polygon(context, PALETTE.bone, [[7, 5], [24, 4], [28, 10], [25, 19], [20, 23], [11, 22], [5, 17], [4, 10]]);
+    rect(context, '#7d5be0', 7, 11, 6, 4); rect(context, '#7d5be0', 20, 11, 6, 4);
+    rect(context, PALETTE.ink, 13, 20, 3, 5); rect(context, PALETTE.ink, 18, 20, 3, 5);
+  });
+  createTexture(scene, 'rig-darkmage-hood', 42, 38, (context) => {
+    polygon(context, '#151322', [[3, 18], [10, 3], [21, 0], [33, 4], [40, 19], [34, 36], [28, 29], [13, 29], [7, 37]]);
+    pixelLine(context, '#694db9', 3, [[9, 22], [13, 8], [30, 8], [35, 23]]);
+  });
+  createTexture(scene, 'rig-darkmage-arm', 14, 43, (context) => {
+    pixelLine(context, PALETTE.ink, 7, [[7, 2], [5, 19], [9, 34]]);
+    pixelLine(context, PALETTE.bone, 3, [[7, 3], [6, 20], [10, 35]]);
+    rect(context, PALETTE.bone, 7, 34, 7, 4);
+  });
+  createTexture(scene, 'rig-darkmage-staff', 12, 66, (context) => {
+    rect(context, PALETTE.ink, 4, 5, 6, 61); rect(context, '#7c503e', 6, 7, 2, 58);
+  });
+  createTexture(scene, 'rig-darkmage-crystal', 24, 28, (context) => {
+    polygon(context, PALETTE.ink, [[12, 0], [23, 11], [18, 25], [6, 27], [0, 13]]);
+    polygon(context, '#7654d6', [[12, 3], [20, 12], [16, 22], [7, 23], [3, 13]]);
+    polygon(context, '#d3b5ff', [[12, 6], [16, 12], [13, 19], [8, 13]]);
+  });
+
   // Monster Rooster: separate tail, torso, wings, neck, head, and talons keep the
   // assembled creature readable during attack poses.
   createTexture(scene, 'rig-rooster-tail', 48, 42, (context) => {

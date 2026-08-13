@@ -4,7 +4,7 @@ export type EnemyKind =
   | 'slime' | 'goblin' | 'bat' | 'skeleton' | 'wolf'
   | 'spider' | 'zombie' | 'mushroom' | 'plant' | 'darkKnight' | 'lizardman' | 'witch';
 export type BossKind =
-  | 'golem' | 'vampire' | 'rooster' | 'troll' | 'werewolf' | 'minotaur' | 'wyvern'
+  | 'golem' | 'vampire' | 'darkMage' | 'rooster' | 'troll' | 'werewolf' | 'minotaur' | 'wyvern'
   | 'ancientBeast' | 'dragon';
 export type FoeKind = EnemyKind | BossKind;
 export type Faction = 'player' | 'enemy';

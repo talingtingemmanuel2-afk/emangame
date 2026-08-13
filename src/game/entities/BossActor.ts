@@ -32,6 +32,7 @@ export interface BossHost {
 const BOSS_NAMES: Record<BossKind, string> = {
   golem: 'Garruk, the Runestone',
   vampire: 'Lady Vespera',
+  darkMage: 'Mordrath, Darkbone Magus',
   rooster: 'The Crimson Cockatrice',
   troll: 'Grumhild, Moss Troll',
   werewolf: 'Fenris, Moonfang',
@@ -42,12 +43,12 @@ const BOSS_NAMES: Record<BossKind, string> = {
 };
 
 const BOSS_TEXTURE: Record<BossKind, string> = {
-  golem: 'boss-golem', vampire: 'boss-vampire', rooster: 'boss-rooster', troll: 'boss-troll', werewolf: 'boss-werewolf',
+  golem: 'boss-golem', vampire: 'boss-vampire', darkMage: 'boss-vampire', rooster: 'boss-rooster', troll: 'boss-troll', werewolf: 'boss-werewolf',
   minotaur: 'boss-minotaur', wyvern: 'boss-wyvern', ancientBeast: 'boss-dragon', dragon: 'boss-dragon',
 };
 
 const BOSS_COLORS: Record<BossKind, number> = {
-  golem: 0xd5b777, vampire: 0xd44773, rooster: 0xff493f, troll: 0x83b65c, werewolf: 0xa690db,
+  golem: 0xd5b777, vampire: 0xd44773, darkMage: 0x7654d6, rooster: 0xff493f, troll: 0x83b65c, werewolf: 0xa690db,
   minotaur: 0xd99755, wyvern: 0xe87846, ancientBeast: 0x69d36d, dragon: 0xff7045,
 };
 
@@ -277,6 +278,7 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
       else if (this.kind === 'werewolf') { this.setTint(0xb99cff); this.host.floatingText(this.x, this.y - 58, 'BLOOD MOON!', '#e0c5ff', true); }
       else if (this.kind === 'wyvern') this.setTint(0xff9a67);
       else if (this.kind === 'troll') this.setTint(0xa4d768);
+      else if (this.kind === 'darkMage') { this.setTint(0xb38cff); this.host.floatingText(this.x, this.y - 58, 'SOULSTORM!', '#d6bdff', true); }
       else if (this.phase === 4) this.setTint(0xff805a);
       this.host.bossHealthChanged(this);
     }
@@ -288,6 +290,7 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
     if (this.kind === 'rooster') this.roosterAttack(time, direction);
     else if (this.kind === 'golem' || this.kind === 'troll') this.golemAttack(time, direction);
     else if (this.kind === 'vampire') this.vampireAttack(time, direction, distance);
+    else if (this.kind === 'darkMage') this.darkMageAttack(time, direction);
     else if (this.kind === 'werewolf') this.werewolfAttack(time, direction);
     else if (this.kind === 'minotaur') this.minotaurAttack(time, direction);
     else if (this.kind === 'wyvern') this.wyvernAttack(time, direction);
@@ -519,6 +522,7 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
     const choice = this.attackIndex % 5;
     const player = this.host.player;
     if (choice === 0) {
+      this.announceAttack('Crimson Miststep', 0xe15b8b);
       this.setBossAlpha(0.12);
       this.host.playSfx('teleport', 0.62);
       const token = this.generation;
@@ -531,25 +535,78 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
       });
       this.recoverUntil = time + 900;
     } else if (choice === 1) {
+      this.announceAttack('Bloodstar Fan', 0xff668e);
       this.host.fireEnemyProjectile(this.x, this.y, player.x, player.y, {
         texture: 'projectile-blood', speed: 245, damage: this.damage, spread: 0.18, count: 5, scale: 0.8,
       });
       this.recoverUntil = time + 850;
     } else if (choice === 2) {
+      this.announceAttack('Nightwing Brood', 0xa36dda);
       for (let i = 0; i < 3; i += 1) this.host.spawnEnemy('bat', this.x + Phaser.Math.Between(-35, 35), this.y + Phaser.Math.Between(-35, 35));
       this.recoverUntil = time + 1050;
     } else if (choice === 3 && distance < 190) {
+      this.announceAttack('Sanguine Drain', 0xe43f68);
       this.host.createDangerCircle(player.x, player.y, 78, 760, this.damage * 1.15, 0xbd3d68);
+      const token = this.generation;
       this.scene.time.delayedCall(780, () => {
-        if (!this.active) return;
+        if (!this.active || this.generation !== token) return;
         this.hp = Math.min(this.maxHp, this.hp + this.maxHp * 0.025);
         this.host.bossHealthChanged(this);
       });
       this.recoverUntil = time + 1450;
     } else {
+      this.announceAttack('Batwing Lunge', 0xb773dd);
       this.telegraphCharge(direction, 410, 510);
     }
     this.scheduleNextAttack(time, [0.9, 0.9, 1.15, 1.2, 1][choice]);
+  }
+
+  private darkMageAttack(time: number, direction: Phaser.Math.Vector2): void {
+    const choice = this.attackIndex % 5;
+    const player = this.host.player;
+    if (choice === 0) {
+      this.announceAttack('Soul Lance Volley', 0xa98cff);
+      this.host.fireEnemyProjectile(this.x, this.y - 24, player.x, player.y, {
+        texture: 'projectile-blood', speed: 275, damage: this.damage * 0.82,
+        spread: 0.16, count: this.phase >= 2 ? 7 : 5, scale: 1.15, tint: 0x8e68e8,
+      });
+      this.recoverUntil = time + 1050;
+    } else if (choice === 1) {
+      this.announceAttack('Bone Prison', 0xe6dfbd);
+      for (let i = 0; i < 3; i += 1) {
+        this.host.createDangerRing(player.x, player.y, 58 + i * 52, 18, 620 + i * 180, this.damage * 0.62, 0xded5b5);
+      }
+      this.recoverUntil = time + 1650;
+    } else if (choice === 2) {
+      this.announceAttack('Grave Portals', 0x7654d6);
+      const count = this.phase >= 2 ? 4 : 3;
+      for (let i = 0; i < count; i += 1) {
+        const angle = (Math.PI * 2 * i) / count;
+        this.host.spawnEnemy('skeleton', this.x + Math.cos(angle) * 120, this.y + Math.sin(angle) * 120, i === 0 && this.phase >= 2);
+      }
+      this.recoverUntil = time + 1800;
+    } else if (choice === 3) {
+      this.announceAttack('Doom Sigils', 0xc44fff);
+      const count = this.phase >= 2 ? 6 : 4;
+      for (let i = 0; i < count; i += 1) {
+        const delay = 760 + i * 110;
+        this.host.createDangerCircle(player.x + Phaser.Math.Between(-210, 210), player.y + Phaser.Math.Between(-150, 150), 58, delay, this.damage, 0x9e55d6);
+      }
+      this.recoverUntil = time + 1900;
+    } else {
+      this.announceAttack('Shadow Gate', 0x6f53b5);
+      this.setBossAlpha(0.16);
+      const token = this.generation;
+      this.scene.time.delayedCall(420, () => {
+        if (!this.active || this.generation !== token) return;
+        this.setPosition(player.x - direction.x * 190, player.y - direction.y * 190);
+        this.setBossAlpha(1);
+        this.host.burst(this.x, this.y, 0x8f68dd, 22, 165);
+        this.host.createDangerCone(this.x, this.y, direction.angle(), 245, 1.05, 520, this.damage * 1.25, 0x8f68dd);
+      });
+      this.recoverUntil = time + 1350;
+    }
+    this.scheduleNextAttack(time, [0.85, 1.05, 1.25, 1.15, 1][choice]);
   }
 
   private dragonAttack(time: number, direction: Phaser.Math.Vector2, distance: number): void {
@@ -672,6 +729,7 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
     else if (this.kind === 'werewolf' && this.phase >= 2) this.setTint(0xb99cff);
     else if (this.kind === 'wyvern' && this.phase >= 2) this.setTint(0xff9a67);
     else if (this.kind === 'troll' && this.phase >= 2) this.setTint(0xa4d768);
+    else if (this.kind === 'darkMage' && this.phase >= 2) this.setTint(0xb38cff);
     else this.clearTint();
   }
 

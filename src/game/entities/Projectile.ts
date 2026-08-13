@@ -55,7 +55,7 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite {
     this.setTint(config.tint ?? 0xffffff).setDepth(7000);
     this.setVelocity(config.velocity.x, config.velocity.y);
     const body = this.body as Phaser.Physics.Arcade.Body;
-    const radius = config.bodyRadius ?? 5;
+    const radius = config.bodyRadius ?? Phaser.Math.Clamp(5 * Math.sqrt(config.scale ?? 1), 5, 10);
     body.setCircle(radius, Math.max(0, this.width / 2 - radius), Math.max(0, this.height / 2 - radius));
     body.setBounce(1, 1).setCollideWorldBounds(this.bounce);
     body.onWorldBounds = this.bounce;

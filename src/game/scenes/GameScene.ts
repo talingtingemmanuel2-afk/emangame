@@ -89,7 +89,6 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
   private minibossDefeated = false;
   private transitionAt = 0;
   private currentBoss: BossActor | null = null;
-  private lastMinibossKind: BossKind | null = null;
   private spawnSerial = 0;
   private nextDebugWriteAt = 0;
   private corruptionOverlay: Phaser.GameObjects.Rectangle | null = null;
@@ -354,12 +353,12 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
     if (!boss) return null;
     const position = this.offscreenSpawnPoint(kind === 'dragon' ? 680 : 560);
     this.currentBoss = boss.spawn(this, kind, position.x, position.y, this.wave);
-    if (kind !== 'dragon' && kind !== 'ancientBeast') this.lastMinibossKind = kind;
     const ancient = kind === 'ancientBeast';
     this.hud.setBoss(boss.displayName, boss.hp, boss.maxHp, kind === 'dragon' || ancient ? boss.phase : undefined, ancient ? 'corrupted' : kind === 'dragon' ? 'fire' : 'normal');
     const subtitles: Partial<Record<BossKind, string>> = {
       rooster: 'THE WAR-CRY OF THE RED DAWN', troll: 'ROOT AND STONE AWAKEN', minotaur: 'THE LABYRINTH BREAKS FREE',
       werewolf: 'THE BLOOD MOON HUNTS', wyvern: 'WINGS IGNITE THE SKY',
+      vampire: 'THE NIGHT QUEEN THIRSTS', darkMage: 'THE GRAVE ANSWERS ITS MASTER',
     };
     this.showBossTitle(kind === 'dragon' ? 'ANCIENT FOREST DRAGON' : ancient ? 'ANCIENT BEAST' : boss.displayName, kind === 'dragon' ? 'THE FINAL FLAME AWAKENS' : ancient ? 'ROTTEN WINGS ECLIPSE THE GROVE' : subtitles[kind] ?? 'MINIBOSS');
     this.audio.crossfade(kind === 'dragon' || ancient ? 'dragon' : 'boss', 900);
@@ -460,7 +459,7 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
     const velocity = this.physics.velocityFromRotation(angle, options.speed);
     projectile.launch({
       x: options.x, y: options.y, texture: options.texture, owner: 'player', velocity,
-      damage: options.damage * this.player.stats.damageMultiplier * this.player.getBuffMultiplier('damage'),
+      damage: options.damage * COMBAT.playerAbilityDamageMultiplier * this.player.stats.damageMultiplier * this.player.getBuffMultiplier('damage'),
       lifespan: options.lifespan, pierce: options.pierce, scale: options.scale, tint: options.tint,
       critical: options.critical, ability: options.ability, rotate: options.rotate, bounce: options.bounce,
     }, this.time.now);
@@ -469,7 +468,7 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
   dealDamage(foe: Foe, amount: number, ability: AbilityId, options: { tint?: number; canCrit?: boolean; knockback?: number } = {}): void {
     if (!foe.active) return;
     const critical = options.canCrit !== false && Math.random() < this.player.stats.critChance;
-    const finalDamage = amount * this.player.stats.damageMultiplier * this.player.getBuffMultiplier('damage') * (critical ? this.player.stats.critMultiplier : 1);
+    const finalDamage = amount * COMBAT.playerAbilityDamageMultiplier * this.player.stats.damageMultiplier * this.player.getBuffMultiplier('damage') * (critical ? this.player.stats.critMultiplier : 1);
     const direction = new Phaser.Math.Vector2(foe.x - this.player.x, foe.y - this.player.y).normalize().scale(options.knockback ?? 0);
     foe.takeDamage(finalDamage, { critical, tint: options.tint, knockback: direction, source: ability });
     this.run.damageDealt += finalDamage;
@@ -707,7 +706,6 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
     this.isLeveling = false;
     this.hazards = [];
     this.currentBoss = null;
-    this.lastMinibossKind = null;
     this.activeWarnings = 0;
     this.rangedAttackLeases.clear();
     this.contactDamageReadyAt.clear();
@@ -886,11 +884,8 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
     if (wave === 5) return 'ancientBeast';
     if (wave === 6) return 'wyvern';
     if (wave === 7) return 'troll';
-    if (wave === 8) return 'werewolf';
-    if (wave === 9) {
-      const choices: BossKind[] = ['minotaur', 'wyvern', 'werewolf'];
-      return Phaser.Utils.Array.GetRandom(choices.filter((kind) => kind !== this.lastMinibossKind));
-    }
+    if (wave === 8) return 'vampire';
+    if (wave === 9) return 'darkMage';
     return 'dragon';
   }
 

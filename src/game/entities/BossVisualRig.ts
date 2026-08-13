@@ -192,9 +192,31 @@ const RIG_SPECS: Record<BossKind, RigSpec> = {
     parts: [part('legacy', 'boss-golem', 'body', 0, 0)],
   },
   vampire: {
-    scale: 2.35, width: 122, height: 150, bodyRadius: 30,
-    shadowWidth: 92, shadowHeight: 25, shadowOffsetY: 72, airborne: false,
-    parts: [part('legacy', 'boss-vampire', 'body', 0, 0)],
+    scale: 2, width: 190, height: 196, bodyRadius: 36,
+    shadowWidth: 120, shadowHeight: 30, shadowOffsetY: 94, airborne: false,
+    parts: [
+      part('capeLeft', 'rig-vampire-cape', 'wingLeft', -15, -3, { originX: 0.82, originY: 0.18, flipX: true, angle: -7 }),
+      part('leftLeg', 'rig-vampire-leg', 'legLeft', -9, 20, { originX: 0.5, originY: 0.08 }),
+      part('rightLeg', 'rig-vampire-leg', 'legRight', 9, 20, { originX: 0.5, originY: 0.08, flipX: true }),
+      part('body', 'rig-vampire-body', 'body', 0, -5),
+      part('capeRight', 'rig-vampire-cape', 'wingRight', 15, -3, { originX: 0.18, originY: 0.18, angle: 7 }),
+      part('leftArm', 'rig-vampire-arm', 'armLeft', -19, -11, { originX: 0.5, originY: 0.08, flipX: true, angle: 12 }),
+      part('rightArm', 'rig-vampire-arm', 'armRight', 19, -11, { originX: 0.5, originY: 0.08, angle: -12 }),
+      part('head', 'rig-vampire-head', 'head', 0, -35, { originX: 0.5, originY: 0.58 }),
+    ],
+  },
+  darkMage: {
+    scale: 1.95, width: 188, height: 210, bodyRadius: 36,
+    shadowWidth: 122, shadowHeight: 31, shadowOffsetY: 100, airborne: false,
+    parts: [
+      part('robe', 'rig-darkmage-robe', 'body', 0, 4),
+      part('farArm', 'rig-darkmage-arm', 'armLeft', -18, -11, { originX: 0.5, originY: 0.08, flipX: true, angle: 15 }),
+      part('staffArm', 'rig-darkmage-arm', 'armRight', 18, -11, { originX: 0.5, originY: 0.08, angle: -15 }),
+      part('skull', 'rig-darkmage-skull', 'head', 0, -34, { originX: 0.5, originY: 0.58 }),
+      part('hood', 'rig-darkmage-hood', 'detail', 0, -38, { originX: 0.5, originY: 0.55 }),
+      part('staff', 'rig-darkmage-staff', 'weapon', 27, -3, { originX: 0.5, originY: 0.82, angle: 6 }),
+      part('crystal', 'rig-darkmage-crystal', 'crystal', 27, -42, { originX: 0.5, originY: 0.5 }),
+    ],
   },
 };
 
@@ -490,6 +512,14 @@ export class BossVisualRig {
       if (isWing) angle += (role === 'wingLeft' ? 1 : -1) * pose * 32;
       if (isHead || role === 'body') { x += pose * 4; angle += pose * 9; }
       if (role === 'legLeft' || role === 'legRight' || role === 'talonLeft' || role === 'talonRight') y -= pose * 5;
+    } else if (cue.includes('soul') || cue.includes('doom') || cue.includes('grave') || cue.includes('bone prison')) {
+      if (role === 'weapon') angle += -38 + progress * 76;
+      if (role === 'armRight') angle += -26 + progress * 52;
+      if (role === 'crystal') { scaleX *= 1 + pose * 0.3; scaleY *= 1 + pose * 0.3; }
+      if (role === 'head') y -= pose * 3;
+    } else if (cue.includes('shadow gate')) {
+      if (role === 'wingLeft' || role === 'wingRight') angle += (role === 'wingLeft' ? -1 : 1) * pose * 34;
+      if (role === 'body' || role === 'head') y -= pose * 4;
     } else if (cue.includes('earth') || cue.includes('slam') || cue.includes('boulder')) {
       if (role === 'weapon') angle += -88 + progress * 176;
       if (role === 'armRight') angle += -45 + progress * 90;

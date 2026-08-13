@@ -4,7 +4,7 @@ import type { AbilityId, AbilityState } from '../types';
 import type { EnemyActor } from '../entities/EnemyActor';
 import type { BossActor } from '../entities/BossActor';
 import type { Player } from '../entities/Player';
-import { ABILITY_COOLDOWNS } from '../config/balance';
+import { ABILITY_COOLDOWNS, COMBAT } from '../config/balance';
 
 export type Foe = EnemyActor | BossActor;
 
@@ -196,7 +196,7 @@ export class AbilitySystem {
     if (!level || time < this.nextUse.poison) return;
     const target = this.host.findDenseFoe();
     if (!target) return;
-    const flask = this.scene.add.image(this.host.player.x, this.host.player.y - 12, 'potion-green').setScale(0.8).setDepth(9000);
+    const flask = this.scene.add.image(this.host.player.x, this.host.player.y - 12, 'potion-green').setScale(1.05 * this.visualScale(level)).setDepth(9000);
     this.scene.tweens.add({
       targets: flask,
       x: target.x, y: target.y, angle: 540,
@@ -363,8 +363,8 @@ export class AbilitySystem {
   }
 
   private visualScale(level: number): number {
-    if (level <= 1) return 1;
-    return 1 + Math.pow((level - 1) / 7, 1.12) * 1.65;
+    const progression = level <= 1 ? 1 : 1 + Math.pow((level - 1) / 7, 1.12) * 1.65;
+    return progression * COMBAT.playerAbilityVisualMultiplier;
   }
 }
 
