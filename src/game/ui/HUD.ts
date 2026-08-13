@@ -133,12 +133,26 @@ export class HUD {
     visibleStates.forEach((state, index) => {
       const definition = ABILITY_DEFINITIONS[state.id];
       const x = (index - (visibleStates.length - 1) / 2) * spacing;
-      const plate = this.scene.add.rectangle(x, 0, 44, 44, 0x09211d, 0.94).setStrokeStyle(2, definition.accent, state.evolved ? 1 : 0.58);
-      const icon = this.scene.add.image(x, -2, definition.icon).setScale(0.82);
-      const level = this.scene.add.text(x + 17, 16, `${state.level}`, { ...this.smallStyle(), fontSize: '11px', color: '#fff4c3' }).setOrigin(1);
+      const frameColor = state.evolved ? 0xffe58a : definition.accent;
+      const glow = this.scene.add.rectangle(x, 0, state.evolved ? 50 : 48, state.evolved ? 50 : 48, definition.accent, state.evolved ? 0.2 : 0.09)
+        .setStrokeStyle(state.evolved ? 2 : 1, frameColor, state.evolved ? 0.72 : 0.32);
+      const plate = this.scene.add.rectangle(x, 0, 44, 44, state.evolved ? 0x26213b : 0x09211d, 0.97)
+        .setStrokeStyle(state.evolved ? 3 : 2, frameColor, state.evolved ? 1 : 0.88);
+      const accentRail = this.scene.add.rectangle(x, -20, state.evolved ? 34 : 26, 3, frameColor, 1);
+      const icon = this.scene.add.image(x, -2, definition.icon).setScale(state.evolved ? 0.92 : 0.84);
+      const levelBadge = this.scene.add.circle(x + 15, 15, 8, state.evolved ? 0xffe58a : definition.accent, 1)
+        .setStrokeStyle(1, 0x071512, 0.9);
+      const level = this.scene.add.text(x + 15, 15, `${state.level}`, {
+        ...this.smallStyle(), fontSize: '9px', color: state.evolved ? '#2b2133' : '#071512', strokeThickness: 0,
+      }).setOrigin(0.5);
+      const evolved = state.evolved
+        ? this.scene.add.text(x - 17, -17, 'MAX', { ...this.smallStyle(), fontSize: '7px', color: '#fff1a8', strokeThickness: 2 }).setOrigin(0, 0.5)
+        : null;
+      const cooldownBack = this.scene.add.rectangle(x - 19, 19, 38, 3, 0x020b0a, 0.9).setOrigin(0, 0.5);
       const cooldown = this.scene.add.rectangle(x - 19, 19, 38 * state.cooldownProgress, 3, definition.accent, 1).setOrigin(0, 0.5);
       this.abilityCooldownBars.set(state.id, cooldown);
-      this.abilityGroup.add([plate, icon, level, cooldown]);
+      this.abilityGroup.add([glow, plate, accentRail, icon, levelBadge, level, cooldownBack, cooldown]);
+      if (evolved) this.abilityGroup.add(evolved);
     });
   }
 

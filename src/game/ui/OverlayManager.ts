@@ -31,31 +31,50 @@ export class OverlayManager {
     choices.forEach((choice, index) => {
       const x = width / 2 + (index - (choices.length - 1) / 2) * spacing;
       const y = height / 2 + 25;
-      const card = this.scene.add.rectangle(x, y, cardWidth, cardHeight, 0x102c26, 0.98)
-        .setStrokeStyle(3, choice.accent, 0.76)
+      const abilityId = choice.id.startsWith('ability-') ? choice.id.slice('ability-'.length) as keyof typeof ABILITY_DEFINITIONS : null;
+      const ability = abilityId ? ABILITY_DEFINITIONS[abilityId] : undefined;
+      const isLearnedSkill = Boolean(ability && choice.currentLevel > 0);
+      const isEvolutionChoice = Boolean(ability && choice.currentLevel + 1 >= ability.maxLevel);
+      const frameColor = isEvolutionChoice ? 0xffe58a : choice.accent;
+      const card = this.scene.add.rectangle(x, y, cardWidth, cardHeight, isEvolutionChoice ? 0x252039 : 0x102c26, 0.98)
+        .setStrokeStyle(isEvolutionChoice ? 4 : 3, frameColor, isLearnedSkill ? 1 : 0.76)
         .setScrollFactor(0)
         .setInteractive({ useHandCursor: true });
-      const glow = this.scene.add.rectangle(x, y, cardWidth + 8, cardHeight + 8, choice.accent, 0).setStrokeStyle(2, choice.accent, 0.15);
-      const iconPlate = this.scene.add.circle(x, y - cardHeight * 0.28, 42, 0x071b18, 0.95).setStrokeStyle(2, choice.accent, 0.8);
-      const icon = this.scene.add.image(x, y - cardHeight * 0.28, choice.icon).setScale(1.35);
+      const glow = this.scene.add.rectangle(x, y, cardWidth + 10, cardHeight + 10, frameColor, isEvolutionChoice ? 0.1 : isLearnedSkill ? 0.05 : 0)
+        .setStrokeStyle(isEvolutionChoice ? 3 : 2, frameColor, isEvolutionChoice ? 0.55 : isLearnedSkill ? 0.3 : 0.15);
+      const accentRail = this.scene.add.rectangle(x, y - cardHeight / 2 + 6, cardWidth - 20, isEvolutionChoice ? 6 : 4, frameColor, 1);
+      const statusWidth = Math.min(cardWidth - 40, isEvolutionChoice ? 154 : 120);
+      const statusPlate = this.scene.add.rectangle(x, y - cardHeight * 0.41, statusWidth, 24, frameColor, isEvolutionChoice ? 0.22 : 0.13)
+        .setStrokeStyle(1, frameColor, isEvolutionChoice ? 0.95 : 0.65);
+      const status = this.scene.add.text(x, y - cardHeight * 0.41,
+        isEvolutionChoice ? 'EVOLUTION READY' : isLearnedSkill ? `OWNED / LV ${choice.currentLevel}` : ability ? 'NEW SKILL' : 'PASSIVE BLESSING', {
+          fontFamily: 'Nunito, sans-serif', fontSize: '10px', fontStyle: 'bold', color: isEvolutionChoice ? '#fff3b0' : '#f2ffe9', letterSpacing: 1,
+        }).setOrigin(0.5);
+      const iconPlate = this.scene.add.circle(x, y - cardHeight * 0.25, isEvolutionChoice ? 47 : 42, 0x071b18, 0.95)
+        .setStrokeStyle(isEvolutionChoice ? 4 : isLearnedSkill ? 3 : 2, frameColor, isEvolutionChoice ? 1 : 0.85);
+      const icon = this.scene.add.image(x, y - cardHeight * 0.25, choice.icon).setScale(isEvolutionChoice ? 1.55 : isLearnedSkill ? 1.43 : 1.35);
       const title = this.scene.add.text(x, y - cardHeight * 0.04, choice.title, {
-        fontFamily: 'Cinzel, serif', fontSize: `${Math.min(20, cardWidth * 0.08)}px`, fontStyle: 'bold', color: '#fff1b5', align: 'center', wordWrap: { width: cardWidth - 34 },
+        fontFamily: 'Cinzel, serif', fontSize: `${Math.min(20, cardWidth * 0.08)}px`, fontStyle: 'bold', color: isEvolutionChoice ? '#fff0a0' : '#fff1b5', align: 'center', wordWrap: { width: cardWidth - 34 },
       }).setOrigin(0.5);
-      const rank = this.scene.add.text(x, y + cardHeight * 0.08, choice.currentLevel === 0 ? 'NEW ABILITY' : `LEVEL ${choice.currentLevel} → ${choice.currentLevel + 1}`, {
-        fontFamily: 'Nunito, sans-serif', fontSize: '12px', fontStyle: 'bold', color: Phaser.Display.Color.IntegerToColor(choice.accent).rgba,
+      const rank = this.scene.add.text(x, y + cardHeight * 0.08, ability && choice.currentLevel === 0
+        ? 'UNLOCK SKILL'
+        : isEvolutionChoice
+          ? `LEVEL ${choice.currentLevel}  >  EVOLVED`
+          : choice.currentLevel > 0 ? `LEVEL ${choice.currentLevel}  >  ${choice.currentLevel + 1}` : 'PERMANENT UPGRADE', {
+        fontFamily: 'Nunito, sans-serif', fontSize: '12px', fontStyle: 'bold', color: Phaser.Display.Color.IntegerToColor(frameColor).rgba,
       }).setOrigin(0.5);
       const description = this.scene.add.text(x, y + cardHeight * 0.22, choice.description, {
         fontFamily: 'Nunito, sans-serif', fontSize: `${Math.min(15, cardWidth * 0.057)}px`, color: '#d8e5cf', align: 'center', lineSpacing: 5, wordWrap: { width: cardWidth - 36 },
       }).setOrigin(0.5, 0);
-      root.add([glow, card, iconPlate, icon, title, rank, description]);
+      root.add([glow, card, accentRail, statusPlate, status, iconPlate, icon, title, rank, description]);
       card.on('pointerover', () => {
-        card.setFillStyle(0x1d473a, 1);
-        glow.setAlpha(0.25);
+        card.setFillStyle(isEvolutionChoice ? 0x3a3154 : 0x1d473a, 1);
+        glow.setAlpha(isEvolutionChoice ? 1 : 0.7);
         this.audio.playSfx('click', { volume: 0.12, detune: 180 });
       });
       card.on('pointerout', () => {
-        card.setFillStyle(0x102c26, 0.98);
-        glow.setAlpha(0);
+        card.setFillStyle(isEvolutionChoice ? 0x252039 : 0x102c26, 0.98);
+        glow.setAlpha(1);
       });
       card.on('pointerup', () => {
         this.audio.playSfx('levelup', { volume: 0.72 });

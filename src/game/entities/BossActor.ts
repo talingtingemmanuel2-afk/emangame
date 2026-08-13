@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
+import { BOSS_BALANCE, BOSS_SCALING } from '../config/balance';
 import type { BossKind, DamageOptions, EnemyKind } from '../types';
 import type { Player } from './Player';
+import { BossVisualRig } from './BossVisualRig';
 
 export interface BossHost {
   player: Player;
@@ -62,6 +64,7 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
   private host!: BossHost;
   private nextAttackAt = 0;
   private attackIndex = 0;
+  private chargeWindupUntil = 0;
   private chargeUntil = 0;
   private chargeVelocity = new Phaser.Math.Vector2();
   private lastInfernoAt = -100_000;
@@ -75,14 +78,16 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
   private dying = false;
   private leavingFireTrail = false;
   private nextTrailAt = 0;
+  private visualAlpha = 1;
   private readonly shadow: Phaser.GameObjects.Ellipse;
   private readonly aura: Phaser.GameObjects.Arc;
+  private readonly visual: BossVisualRig;
 
   get specialState(): string {
     const time = this.scene.time.now;
     if (this.dying) return 'dying';
     if (time < this.regenUntil) return 'regenerating';
-    if (time < this.chargeUntil) return 'charging';
+    if (time < this.chargeWindupUntil || time < this.chargeUntil) return 'charging';
     if (time < this.recoverUntil) return 'recovering';
     if (time < this.enteringUntil) return 'entering';
     return this.phase >= 2 ? 'enraged' : 'normal';
@@ -94,6 +99,7 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
     scene.physics.add.existing(this);
     this.shadow = scene.add.ellipse(-100, -100, 76, 25, 0x07120e, 0.42).setVisible(false);
     this.aura = scene.add.circle(-100, -100, 38, 0xffffff, 0).setStrokeStyle(3, 0xffffff, 0).setVisible(false);
+    this.visual = new BossVisualRig(scene);
     this.disableBody(true, true);
   }
 
@@ -103,13 +109,14 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
     this.displayName = BOSS_NAMES[kind];
     this.phase = 1;
     this.generation += 1;
-    const scale = kind === 'dragon' ? 4.45 : kind === 'ancientBeast' ? 3.7 : kind === 'wyvern' ? 3.15 : kind === 'werewolf' ? 3.05 : kind === 'rooster' ? 3.25 : kind === 'troll' ? 2.95 : 2.65;
-    const baseHp: Record<BossKind, number> = { golem: 680, vampire: 620, rooster: 1180, troll: 1320, werewolf: 1420, minotaur: 1880, wyvern: 2450, ancientBeast: 5400, dragon: 12_500 };
-    this.maxHp = Math.round(baseHp[kind] * (kind === 'dragon' || kind === 'ancientBeast' ? 1 : 1 + wave * 0.18));
+    const tuning = BOSS_BALANCE[kind];
+    const hpScale = kind === 'dragon' || kind === 'ancientBeast' ? 1 : 1 + Math.max(0, wave - 1) * BOSS_SCALING.hpPerWave;
+    this.maxHp = Math.round(tuning.hp * hpScale);
     this.hp = this.maxHp;
-    this.damage = Math.round((kind === 'dragon' ? 31 : kind === 'ancientBeast' ? 26 : kind === 'rooster' ? 18 : 17) * (1 + wave * 0.04));
-    this.nextAttackAt = this.scene.time.now + (kind === 'dragon' ? 2200 : 1600);
+    this.damage = Math.round(tuning.damage * (1 + Math.max(0, wave - 1) * BOSS_SCALING.damagePerWave));
+    this.nextAttackAt = this.scene.time.now + Math.max(1800, tuning.cadence * 0.72);
     this.attackIndex = 0;
+    this.chargeWindupUntil = 0;
     this.chargeUntil = 0;
     this.lastInfernoAt = -100_000;
     this.enteringUntil = this.scene.time.now + 1050;
@@ -120,19 +127,23 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
     this.regenDamage = 0;
     this.dying = false;
     this.leavingFireTrail = false;
+    this.visualAlpha = 1;
     this.lastAttack = 'Entrance';
     this.attacksUsed.clear();
+    this.scene.tweens.killTweensOf(this);
+    this.scene.tweens.killTweensOf(this.aura);
     this.enableBody(true, x, y, true, true);
-    this.setTexture(BOSS_TEXTURE[kind]).setScale(scale * 0.58).setAlpha(0.12).setAngle(0).setTint(kind === 'ancientBeast' ? 0x7acb76 : 0xffffff).setDepth(y + 30);
+    this.setTexture(BOSS_TEXTURE[kind]).setScale(1).setAlpha(1).setAngle(0).setVisible(false).clearTint().setDepth(y + 30);
     const body = this.body as Phaser.Physics.Arcade.Body;
-    const radius = kind === 'dragon' || kind === 'ancientBeast' ? 25 : kind === 'rooster' || kind === 'wyvern' ? 20 : 18;
-    body.setCircle(radius, Math.max(0, this.width / 2 - radius), Math.max(0, this.height / 2 - radius));
+    const radius = tuning.hitboxRadius;
+    body.setCircle(radius, this.width / 2 - radius, this.height / 2 - radius);
     body.setVelocity(0).setEnable(true);
-    const flying = kind === 'wyvern' || kind === 'ancientBeast' || kind === 'dragon';
-    this.shadow.setVisible(true).setPosition(x + (flying ? 10 : 0), y + (flying ? 34 : 20)).setScale(flying ? 1.35 : 1).setAlpha(flying ? 0.28 : 0.42).setDepth(y - 3);
-    this.aura.setVisible(true).setPosition(x, y).setRadius(kind === 'dragon' ? 72 : kind === 'ancientBeast' ? 62 : 42).setStrokeStyle(3, BOSS_COLORS[kind], 0.28).setDepth(y - 2);
-    this.scene.tweens.add({ targets: this, alpha: 1, scaleX: scale, scaleY: scale, duration: 900, ease: 'Back.out' });
-    this.scene.tweens.add({ targets: this.aura, alpha: { from: 0.22, to: 0.72 }, scale: { from: 0.8, to: 1.18 }, duration: 950, yoyo: true, repeat: -1 });
+    this.visual.spawn(kind, x, y, y + 30);
+    const metrics = this.visual.metrics;
+    const flying = metrics.airborne;
+    this.shadow.setVisible(true).setPosition(x, y + metrics.shadowOffsetY).setDisplaySize(metrics.shadowWidth, metrics.shadowHeight).setAlpha(flying ? 0.24 : 0.36).setDepth(y - 3);
+    this.aura.setVisible(true).setPosition(x, y).setRadius(kind === 'dragon' ? 72 : kind === 'ancientBeast' ? 62 : 42).setScale(1).setAlpha(1).setStrokeStyle(3, BOSS_COLORS[kind], 0.28).setDepth(y - 2);
+    this.scene.tweens.add({ targets: this.aura, alpha: { from: 0.08, to: 0.3 }, scale: { from: 0.9, to: 1.1 }, duration: 1100, yoyo: true, repeat: -1 });
     this.host.burst(x, y, BOSS_COLORS[kind], 24, 150);
     this.host.playSfx(kind === 'rooster' ? 'rooster-cry' : kind === 'troll' ? 'troll-roar' : kind === 'wyvern' ? 'wyvern-wing' : 'boss-charge', 0.72);
     this.host.bossHealthChanged(this);
@@ -140,14 +151,18 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
   }
 
   updateBoss(time: number): void {
-    if (!this.active || !this.host.player.active || this.dying) return;
+    if (!this.active || !this.host.player.active) return;
+    if (this.dying) {
+      this.visual.sync(this.x, this.y, this.y + this.visual.metrics.shadowOffsetY, this.flipX, time, this.phase, 'dying');
+      return;
+    }
     this.updatePhase();
     const player = this.host.player;
     const toPlayer = new Phaser.Math.Vector2(player.x - this.x, player.y - this.y);
     const distance = Math.max(1, toPlayer.length());
     toPlayer.scale(1 / distance);
 
-    if (time < this.enteringUntil || time < this.regenUntil || (time >= this.chargeUntil && time < this.recoverUntil)) {
+    if (time < this.enteringUntil || time < this.regenUntil || time < this.chargeWindupUntil || (time >= this.chargeUntil && time < this.recoverUntil)) {
       this.setVelocity(0);
       if (time < this.regenUntil && time >= this.nextRegenTick) {
         this.nextRegenTick = time + 420;
@@ -163,21 +178,32 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
       }
     } else {
       this.leavingFireTrail = false;
-      const speed = (this.kind === 'dragon' ? 68 + this.phase * 10 : this.kind === 'ancientBeast' ? 55 + this.phase * 10 : this.kind === 'rooster' ? 105 : this.kind === 'werewolf' ? 118 : this.kind === 'wyvern' ? 92 : this.kind === 'vampire' ? 88 : this.kind === 'troll' ? 52 : 62) * (1 + this.host.wave * 0.008) * (time < this.attackBuffUntil ? 1.32 : 1) * (this.phase >= 2 ? 1.08 : 1);
+      const tuning = BOSS_BALANCE[this.kind];
+      const speed = tuning.moveSpeed
+        * (time < this.attackBuffUntil ? BOSS_SCALING.phaseBurstMoveSpeedMultiplier : 1)
+        * (this.phase >= 2 ? BOSS_SCALING.enragedMoveSpeedMultiplier : 1);
       if (distance > (this.kind === 'dragon' ? 155 : 95)) this.setVelocity(toPlayer.x * speed, toPlayer.y * speed);
       else this.setVelocity(-toPlayer.y * speed * 0.25, toPlayer.x * speed * 0.25);
       if (time >= this.nextAttackAt) this.performAttack(time, toPlayer, distance);
     }
     this.setFlipX(this.body instanceof Phaser.Physics.Arcade.Body && this.body.velocity.x < 0);
     this.setDepth(this.y + 30);
-    const flying = this.kind === 'wyvern' || this.kind === 'ancientBeast' || this.kind === 'dragon';
-    this.shadow.setPosition(this.x + (flying ? 10 : 0), this.y + (flying ? 34 + Math.sin(time * 0.004) * 4 : 20)).setDepth(this.y - 3).setScale(flying ? 1.25 + Math.sin(time * 0.004) * 0.08 : 1);
+    const metrics = this.visual.metrics;
+    const flying = metrics.airborne;
+    const hiddenAloft = this.visualAlpha < 0.5;
+    const diveScale = hiddenAloft ? 0.66 : flying && this.specialState === 'charging' ? 1.08 : flying ? 0.82 + Math.sin(time * 0.004) * 0.04 : 1;
+    this.shadow
+      .setPosition(this.x, this.y + metrics.shadowOffsetY + (flying ? 5 : 0))
+      .setDepth(this.y - 3)
+      .setDisplaySize(metrics.shadowWidth * diveScale, metrics.shadowHeight * diveScale)
+      .setAlpha(hiddenAloft ? 0.16 : flying ? (this.specialState === 'charging' ? 0.34 : 0.22) : 0.36);
     this.aura.setPosition(this.x, this.y).setDepth(this.y - 2);
+    this.visual.sync(this.x, this.y, this.y + metrics.shadowOffsetY, this.flipX, time, this.phase, this.specialState);
   }
 
   takeDamage(amount: number, options: DamageOptions = {}): boolean {
     if (!this.active || this.hp <= 0) return false;
-    const adjusted = this.kind === 'dragon' ? amount * 0.82 : this.kind === 'ancientBeast' ? amount * 0.88 : this.kind === 'minotaur' && this.phase >= 2 ? amount * 1.18 : amount;
+    const adjusted = this.kind === 'dragon' ? amount * 0.9 : this.kind === 'ancientBeast' ? amount * 0.94 : this.kind === 'minotaur' && this.phase >= 2 ? amount * 1.18 : amount;
     this.hp -= adjusted;
     if (this.regenUntil > this.scene.time.now) {
       this.regenDamage += adjusted;
@@ -189,6 +215,7 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
       }
     }
     this.setTintFill(0xffffff);
+    this.visual.flash();
     const token = this.generation;
     this.scene.time.delayedCall(65, () => {
       if (this.active && this.generation === token) this.restoreBossTint();
@@ -210,6 +237,8 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
       this.host.playSfx('boss-death', 0.82);
       if (this.kind === 'rooster') this.host.playSfx('rooster-cry', 0.46);
       this.host.burst(this.x, this.y, BOSS_COLORS[this.kind], 34, 230);
+      this.setBossAlpha(1);
+      this.visual.playDeath(680);
       const token = this.generation;
       this.scene.tweens.add({ targets: this, angle: this.flipX ? -88 : 88, y: this.y + 24, alpha: 0.15, scaleX: this.scaleX * 1.18, scaleY: this.scaleY * 0.72, duration: 680, ease: 'Quad.in' });
       this.scene.tweens.add({ targets: this.aura, alpha: 0, scale: 1.8, duration: 620 });
@@ -220,10 +249,14 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
   }
 
   retire(): void {
+    this.scene.tweens.killTweensOf(this);
+    this.scene.tweens.killTweensOf(this.aura);
     this.disableBody(true, true);
-    this.clearTint().setVelocity(0);
+    this.clearTint().setVelocity(0).setVisible(false);
     this.shadow.setVisible(false);
     this.aura.setVisible(false);
+    this.visual.recycle();
+    this.visualAlpha = 1;
   }
 
   private updatePhase(): void {
@@ -238,7 +271,7 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
       this.attackBuffUntil = this.scene.time.now + (this.kind === 'werewolf' ? 7500 : 3200);
       this.host.burst(this.x, this.y, BOSS_COLORS[this.kind], 32, 190);
       this.scene.cameras.main.shake(360, 0.009);
-      this.aura.setStrokeStyle(this.phase >= 2 ? 6 : 3, BOSS_COLORS[this.kind], 0.78);
+      this.aura.setStrokeStyle(this.phase >= 2 ? 4 : 2, BOSS_COLORS[this.kind], 0.45);
       if (this.kind === 'rooster') { this.setTint(0xff7566); this.host.floatingText(this.x, this.y - 58, 'CRIMSON FRENZY!', '#ff8d78', true); this.host.playSfx('rooster-cry', 0.9); }
       else if (this.kind === 'minotaur') { this.setTint(0xff7659); this.host.floatingText(this.x, this.y - 58, 'BLOOD RAGE!', '#ff8d78', true); }
       else if (this.kind === 'werewolf') { this.setTint(0xb99cff); this.host.floatingText(this.x, this.y - 58, 'BLOOD MOON!', '#e0c5ff', true); }
@@ -269,9 +302,9 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
     if (choice === 0) {
       this.announceAttack('Razor Peck', 0xffcf64);
       this.host.createDangerLine(this.x, this.y, direction.angle(), 168, 56, 360, this.damage * 1.42, 0xffd166);
-      this.scene.tweens.add({ targets: this, scaleX: this.scaleX * 1.16, scaleY: this.scaleY * 0.84, duration: 180, yoyo: true });
       this.scene.time.delayedCall(360, () => this.active && this.host.burst(this.x + direction.x * 74, this.y + direction.y * 74, 0xffe2a0, 12, 120));
       this.host.playSfx('rooster-peck', 0.68);
+      this.recoverUntil = time + 760;
     } else if (choice === 1) {
       this.announceAttack('Talon Rush', 0xff7c55);
       this.host.createDangerLine(this.x, this.y, direction.angle(), 610, 68, 720, this.damage * 1.35, 0xff7c55);
@@ -285,31 +318,32 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
           texture: 'projectile-feather', speed: frenzy ? 330 : 270, damage: this.damage * 0.72, scale: 0.88, rotate: 520, tint: i % 2 ? 0xfff1c2 : 0xff7b67,
         });
       }
-      this.scene.tweens.add({ targets: this, angle: this.flipX ? -360 : 360, duration: 620, onComplete: () => this.active && this.setAngle(0) });
       this.host.playSfx('feather-storm', 0.7);
+      this.recoverUntil = time + 980;
     } else if (choice === 3) {
       this.announceAttack('Sky Pounce', 0xff9a5e);
       const leadX = player.x + (player.body instanceof Phaser.Physics.Arcade.Body ? player.body.velocity.x * 0.54 : 0);
       const leadY = player.y + (player.body instanceof Phaser.Physics.Arcade.Body ? player.body.velocity.y * 0.54 : 0);
       this.host.createDangerCircle(leadX, leadY, frenzy ? 98 : 84, 940, this.damage * 1.55, 0xff9a5e);
-      this.setAlpha(0.16);
-      this.shadow.setScale(1.8).setAlpha(0.48);
+      this.setBossAlpha(0.16);
       const token = this.generation;
       this.scene.time.delayedCall(930, () => {
         if (!this.active || this.generation !== token) return;
-        this.setPosition(leadX, leadY).setAlpha(1);
-        this.shadow.setScale(1).setAlpha(0.42);
+        this.setPosition(leadX, leadY);
+        this.setBossAlpha(1);
         this.host.burst(leadX, leadY, 0xffa45f, 28, 205);
         this.scene.cameras.main.shake(260, 0.01);
       });
+      this.recoverUntil = time + 1850;
     } else {
       this.announceAttack('War Cry', 0xff5c4e);
       for (let i = 1; i <= 3; i += 1) this.host.createDangerRing(this.x, this.y, 52 + i * 38, 14, 360 + i * 150, this.damage * 0.36, 0xff6854);
       this.attackBuffUntil = time + (frenzy ? 6200 : 4200);
       if (Phaser.Math.Distance.Between(this.x, this.y, player.x, player.y) < 170) this.host.pushPlayerFrom(this.x, this.y, 68);
       this.host.playSfx('rooster-cry', 0.88);
+      this.recoverUntil = time + 1100;
     }
-    this.nextAttackAt = time + (frenzy ? 820 : 1420);
+    this.scheduleNextAttack(time, [0.75, 1.25, 1.4, 1.55, 1.8][choice]);
   }
 
   private golemAttack(time: number, direction: Phaser.Math.Vector2): void {
@@ -320,6 +354,7 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
         for (let i = 1; i <= 3; i += 1) this.host.createDangerRing(this.x, this.y, 58 + i * 52, 18, 480 + i * 250, this.damage * 0.72, 0xd7ad68);
       } else this.host.createDangerCircle(this.x, this.y, 128, 850, this.damage * 1.25, 0xf3b85b);
       this.host.playSfx('slam', 0.7);
+      this.recoverUntil = time + (this.kind === 'troll' ? 1900 : 1450);
     } else if (choice === 1) {
       this.announceAttack(this.kind === 'troll' ? 'Boulder Barrage' : 'Rune Boulder', 0xc99b60);
       const count = this.kind === 'troll' ? (this.phase >= 2 ? 5 : 3) : 1;
@@ -329,6 +364,7 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
         this.scene.time.delayedCall(i * 130, () => this.active && this.host.createDangerCircle(impactX, impactY, 54, 720, this.damage * 0.92, 0xc69a62));
       }
       this.host.playSfx('rock', 0.58);
+      this.recoverUntil = time + 1600;
     } else if (choice === 2) {
       this.announceAttack(this.kind === 'troll' ? 'Rampage Combo' : 'Granite Rush', 0xa7ca70);
       if (this.kind === 'troll') this.host.playSfx('troll-roar', 0.54);
@@ -345,8 +381,9 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
           texture: 'projectile-rock', speed: 225, damage: this.damage * 0.72, scale: 0.74,
         });
       }
+      this.recoverUntil = time + 900;
     }
-    this.nextAttackAt = time + (this.kind === 'troll' && this.phase >= 2 ? 1300 : Math.max(1900, 3150 - this.host.wave * 30));
+    this.scheduleNextAttack(time, [1.25, 1.1, 1.45, 0.95][choice]);
   }
 
   private werewolfAttack(time: number, direction: Phaser.Math.Vector2): void {
@@ -356,27 +393,34 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
       this.host.createDangerCone(this.x, this.y, direction.angle(), 145, 1.45, 380, this.damage * 0.72, 0xe35b72);
       this.scene.time.delayedCall(430, () => this.active && this.host.createDangerCone(this.x, this.y, direction.angle() + 0.32, 165, 1.35, 340, this.damage * 0.76, 0xc74f67));
       this.scene.time.delayedCall(820, () => this.active && this.host.createDangerCircle(this.x, this.y, 112, 360, this.damage, 0x93475f));
+      this.recoverUntil = time + 1750;
     }
     else if (choice === 1) {
       this.announceAttack('Shadow Pounce', 0x9c75cc);
       this.host.createDangerLine(this.x, this.y, direction.angle(), 430, 52, 520, this.damage * 1.18, 0x9c75cc);
-      this.setAlpha(0.22);
+      this.setBossAlpha(0.22);
       this.host.burst(this.x, this.y, 0x6f518f, 18, 130);
       this.telegraphCharge(direction, 480, 720, 420);
-      this.scene.time.delayedCall(500, () => this.active && this.setAlpha(1));
+      this.scene.time.delayedCall(500, () => this.active && this.setBossAlpha(1));
     }
     else if (choice === 2) {
       this.announceAttack('Moonfang Howl', 0xd9d3ff);
       this.host.playSfx('werewolf-howl', 0.8); this.host.burst(this.x, this.y, 0xd9d3ff, 24, 160);
       for (let i = 1; i <= 3; i += 1) this.host.createDangerRing(this.x, this.y, i * 54, 12, 350 + i * 140, this.damage * 0.3, 0xc6b9f4);
       this.attackBuffUntil = time + (this.phase >= 2 ? 7200 : 4200);
+      this.recoverUntil = time + 1150;
     }
     else {
       this.announceAttack('Miststep Ambush', 0x8260a4);
-      this.setAlpha(0.12); this.host.burst(this.x, this.y, 0x715282, 14, 105);
-      this.scene.time.delayedCall(260, () => this.active && this.setPosition(this.host.player.x - direction.x * 105, this.host.player.y - direction.y * 105).setAlpha(1));
+      this.setBossAlpha(0.12); this.host.burst(this.x, this.y, 0x715282, 14, 105);
+      this.scene.time.delayedCall(260, () => {
+        if (!this.active) return;
+        this.setPosition(this.host.player.x - direction.x * 105, this.host.player.y - direction.y * 105);
+        this.setBossAlpha(1);
+      });
+      this.recoverUntil = time + 820;
     }
-    this.nextAttackAt = time + (this.hp / this.maxHp < 0.45 ? 1200 : 1850);
+    this.scheduleNextAttack(time, [0.95, 1.1, 1.25, 0.95][choice]);
   }
 
   private minotaurAttack(time: number, direction: Phaser.Math.Vector2): void {
@@ -391,19 +435,20 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
       this.announceAttack('Axe Cyclone', 0xf7c172);
       this.host.playSfx('axe-spin', 0.72);
       for (let i = 0; i < 3; i += 1) this.scene.time.delayedCall(i * 260, () => this.active && this.host.createDangerRing(this.x, this.y, 105 + i * 20, 52, 420, this.damage * 0.72, 0xf7c172));
-      this.scene.tweens.add({ targets: this, angle: this.flipX ? -720 : 720, duration: 1250, onComplete: () => this.active && this.setAngle(0) });
       this.chargeUntil = time + 1150; this.chargeVelocity.copy(direction).scale(185);
+      this.recoverUntil = time + 1850;
     }
     else if (choice === 2) {
       this.announceAttack('Horn Shockwave', 0xd2b07b);
       this.host.createDangerCone(this.x, this.y, direction.angle(), 275, 1.18, 760, this.damage * 1.25, 0xd2b07b);
       for (let i = 1; i <= 4; i += 1) this.scene.time.delayedCall(i * 90, () => this.active && this.host.burst(this.x + direction.x * i * 55, this.y + direction.y * i * 55, 0xb89c76, 6, 48));
+      this.recoverUntil = time + 1500;
     }
     else {
       this.announceAttack('Bull Rush', 0xff6c43);
       this.host.burst(this.x, this.y, 0xff6c43, 28, 190); this.telegraphCharge(direction, 350, 650, 500);
     }
-    this.nextAttackAt = time + (this.phase >= 2 ? 1450 : 2100);
+    this.scheduleNextAttack(time, [1, 0.9, 1, 0.9][choice]);
   }
 
   private wyvernAttack(time: number, direction: Phaser.Math.Vector2): void {
@@ -412,6 +457,7 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
       this.announceAttack('Fireball Fan', 0xff8b52);
       this.host.playSfx('fire', 0.66);
       this.host.fireEnemyProjectile(this.x, this.y, this.host.player.x, this.host.player.y, { texture: 'projectile-fireball', speed: 285, damage: this.damage, spread: 0.17, count: this.phase >= 2 ? 7 : 5, scale: 1.05 });
+      this.recoverUntil = time + 900;
     }
     else if (choice === 1) {
       this.announceAttack('Sky Sweep', 0xffad5e);
@@ -427,11 +473,13 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
       }
       if (Phaser.Math.Distance.Between(this.x, this.y, this.host.player.x, this.host.player.y) < 205) this.host.pushPlayerFrom(this.x, this.y, 86);
       this.host.playSfx('wyvern-wing', 0.74);
+      this.recoverUntil = time + 1050;
     }
     else if (choice === 3) {
       this.announceAttack('Cinder Gale', 0xeb7151);
       this.host.playSfx('tornado-wind', 0.68);
       this.host.createMovingHazard(this.x, this.y, direction.clone().rotate(0.6).scale(105), this.damage * 0.7);
+      this.recoverUntil = time + 950;
     }
     else {
       this.announceAttack('Inferno Dive', 0xff653f);
@@ -439,51 +487,57 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
       const targetX = this.host.player.x + Phaser.Math.Between(-40, 40);
       const targetY = this.host.player.y + Phaser.Math.Between(-40, 40);
       this.host.createDangerCircle(targetX, targetY, this.phase >= 2 ? 105 : 82, 920, this.damage * 1.38, 0xff693f);
-      this.setAlpha(0.16);
+      this.setBossAlpha(0.16);
       this.scene.time.delayedCall(910, () => {
         if (!this.active) return;
-        this.setPosition(targetX, targetY).setAlpha(1);
+        this.setPosition(targetX, targetY);
+        this.setBossAlpha(1);
         for (let i = 0; i < (this.phase >= 2 ? 10 : 7); i += 1) {
           const angle = i * Math.PI * 2 / (this.phase >= 2 ? 10 : 7);
           this.host.fireEnemyProjectile(this.x, this.y, this.x + Math.cos(angle) * 90, this.y + Math.sin(angle) * 90, { texture: 'projectile-fireball', speed: 270, damage: this.damage * 0.65, scale: 0.82 });
         }
       });
+      this.recoverUntil = time + 1850;
     }
-    this.nextAttackAt = time + (this.phase >= 2 ? 1180 : 1640);
+    this.scheduleNextAttack(time, [1, 1.25, 1, 1, 1.25][choice]);
   }
 
   private beastAttack(time: number, direction: Phaser.Math.Vector2): void {
     const player = this.host.player;
     const choice = this.attackIndex % (this.phase === 1 ? 4 : 6);
-    if (choice === 0) this.host.createFireCone(this.x, this.y, direction.angle(), 410, 0.82, this.damage * 1.35);
-    else if (choice === 1) { this.host.fireEnemyProjectile(this.x, this.y, player.x, player.y, { texture: 'projectile-rock', speed: 260, damage: this.damage, spread: 0.2, count: 5, scale: 1.15 }); this.host.playSfx('bone', 0.65); }
-    else if (choice === 2) this.host.createDangerCircle(this.x, this.y, 175, 650, this.damage * 1.2, 0x69ce62);
-    else if (choice === 3) this.telegraphCharge(direction, 620, this.phase === 3 ? 720 : 560);
-    else if (choice === 4) { for (let i = 0; i < 4; i += 1) this.host.spawnEnemy(i % 2 ? 'skeleton' : 'zombie', this.x + Phaser.Math.Between(-130, 130), this.y + Phaser.Math.Between(-130, 130)); }
-    else for (let i = 0; i < (this.phase === 3 ? 8 : 5); i += 1) this.host.createDangerCircle(player.x + Phaser.Math.Between(-220, 220), player.y + Phaser.Math.Between(-160, 160), 64, 850 + i * 80, this.damage, 0x64d35f);
+    if (choice === 0) { this.announceAttack('Toxic Breath', 0x75e76a); this.host.createFireCone(this.x, this.y, direction.angle(), 410, 0.82, this.damage * 1.35); this.recoverUntil = time + 1800; }
+    else if (choice === 1) { this.announceAttack('Bone Volley', 0xe7dfbb); this.host.fireEnemyProjectile(this.x, this.y, player.x, player.y, { texture: 'projectile-rock', speed: 260, damage: this.damage, spread: 0.2, count: 5, scale: 1.15 }); this.host.playSfx('bone', 0.65); this.recoverUntil = time + 1050; }
+    else if (choice === 2) { this.announceAttack('Graveburst', 0x69ce62); this.host.createDangerCircle(this.x, this.y, 175, 650, this.damage * 1.2, 0x69ce62); this.recoverUntil = time + 1350; }
+    else if (choice === 3) { this.announceAttack('Rotting Charge', 0x9be16e); this.telegraphCharge(direction, 620, this.phase === 3 ? 720 : 560); }
+    else if (choice === 4) { this.announceAttack('Raise the Fallen', 0xa984d4); for (let i = 0; i < 4; i += 1) this.host.spawnEnemy(i % 2 ? 'skeleton' : 'zombie', this.x + Phaser.Math.Between(-130, 130), this.y + Phaser.Math.Between(-130, 130)); this.recoverUntil = time + 1400; }
+    else { this.announceAttack('Corruption Meteor', 0x9a73cf); for (let i = 0; i < (this.phase === 3 ? 8 : 5); i += 1) this.host.createDangerCircle(player.x + Phaser.Math.Between(-220, 220), player.y + Phaser.Math.Between(-160, 160), 64, 850 + i * 80, this.damage, 0x64d35f); this.recoverUntil = time + 2300; }
     if (this.phase >= 2 && choice === 3) for (let i = 1; i <= 3; i += 1) this.scene.time.delayedCall(i * 260, () => this.active && this.host.createDangerCircle(this.x - direction.x * i * 70, this.y - direction.y * i * 70, 42, 360, this.damage * 0.6, 0x5fbd54));
-    this.nextAttackAt = time + (this.phase === 3 ? 1250 : 1900);
+    this.scheduleNextAttack(time, [1, 0.85, 0.95, 1.15, 1.3, 1.35][choice]);
   }
 
   private vampireAttack(time: number, direction: Phaser.Math.Vector2, distance: number): void {
     const choice = this.attackIndex % 5;
     const player = this.host.player;
     if (choice === 0) {
-      this.setAlpha(0.12);
+      this.setBossAlpha(0.12);
       this.host.playSfx('teleport', 0.62);
       const token = this.generation;
       this.scene.time.delayedCall(360, () => {
         if (!this.active || this.generation !== token) return;
         const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
-        this.setPosition(player.x + Math.cos(angle) * 155, player.y + Math.sin(angle) * 155).setAlpha(1);
+        this.setPosition(player.x + Math.cos(angle) * 155, player.y + Math.sin(angle) * 155);
+        this.setBossAlpha(1);
         this.host.burst(this.x, this.y, 0xd44773, 16, 130);
       });
+      this.recoverUntil = time + 900;
     } else if (choice === 1) {
       this.host.fireEnemyProjectile(this.x, this.y, player.x, player.y, {
         texture: 'projectile-blood', speed: 245, damage: this.damage, spread: 0.18, count: 5, scale: 0.8,
       });
+      this.recoverUntil = time + 850;
     } else if (choice === 2) {
       for (let i = 0; i < 3; i += 1) this.host.spawnEnemy('bat', this.x + Phaser.Math.Between(-35, 35), this.y + Phaser.Math.Between(-35, 35));
+      this.recoverUntil = time + 1050;
     } else if (choice === 3 && distance < 190) {
       this.host.createDangerCircle(player.x, player.y, 78, 760, this.damage * 1.15, 0xbd3d68);
       this.scene.time.delayedCall(780, () => {
@@ -491,40 +545,52 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
         this.hp = Math.min(this.maxHp, this.hp + this.maxHp * 0.025);
         this.host.bossHealthChanged(this);
       });
+      this.recoverUntil = time + 1450;
     } else {
       this.telegraphCharge(direction, 410, 510);
     }
-    this.nextAttackAt = time + Math.max(1550, 2850 - this.host.wave * 27);
+    this.scheduleNextAttack(time, [0.9, 0.9, 1.15, 1.2, 1][choice]);
   }
 
   private dragonAttack(time: number, direction: Phaser.Math.Vector2, distance: number): void {
     const player = this.host.player;
-    const cadence = this.phase === 4 ? 1550 : 2350 - this.phase * 120;
     const pool: Array<'fireball' | 'claw' | 'tail' | 'breath' | 'dash' | 'meteor' | 'tornado' | 'summon'> = ['fireball', 'claw', 'tail'];
     if (this.phase >= 2) pool.push('breath', 'dash');
     if (this.phase >= 3) pool.push('meteor', 'tornado', 'summon');
-    if (this.phase === 4 && time - this.lastInfernoAt > 14_000) {
+    if (this.phase === 4 && time - this.lastInfernoAt > BOSS_SCALING.infernoCooldownMs) {
       this.lastInfernoAt = time;
+      this.announceAttack('Worldfire Inferno', 0xff5b38);
       this.host.createInferno(this);
-      this.nextAttackAt = time + 5200;
+      this.nextAttackAt = time + BOSS_SCALING.infernoRecoveryMs;
+      this.recoverUntil = this.nextAttackAt;
       return;
     }
     const attack = pool[this.attackIndex % pool.length];
     if (attack === 'fireball') {
+      this.announceAttack('Elder Fireballs', 0xff8d52);
       this.host.fireEnemyProjectile(this.x, this.y - 15, player.x, player.y, {
         texture: 'projectile-fireball', speed: 255 + this.phase * 20, damage: this.damage,
         spread: 0.13, count: this.phase === 4 ? 5 : 3, scale: 1.15,
       });
       this.host.playSfx('fire', 0.65);
+      this.recoverUntil = time + 900;
     } else if (attack === 'claw') {
+      this.announceAttack('Titan Claw', 0xff9b62);
       this.host.createDangerCircle(this.x, this.y, distance < 130 ? 135 : 105, 620, this.damage * 1.15, 0xff814f);
+      this.recoverUntil = time + 1350;
     } else if (attack === 'tail') {
+      this.announceAttack('Spiked Tail Sweep', 0xffad62);
       this.host.createDangerCircle(this.x, this.y, 175, 820, this.damage * 1.1, 0xffa058);
+      this.recoverUntil = time + 1550;
     } else if (attack === 'breath') {
+      this.announceAttack('Forestfire Breath', 0xff7145);
       this.host.createFireCone(this.x, this.y, direction.angle(), 380, 0.82, this.damage * 1.35);
+      this.recoverUntil = time + 1900;
     } else if (attack === 'dash') {
+      this.announceAttack('Wingfold Dash', 0xffc06b);
       this.telegraphCharge(direction, 680, 590);
     } else if (attack === 'meteor') {
+      this.announceAttack('Ancient Meteors', 0xff5f3d);
       const count = this.phase === 4 ? 7 : 4;
       for (let i = 0; i < count; i += 1) {
         this.scene.time.delayedCall(i * 190, () => {
@@ -533,16 +599,31 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
           this.host.createDangerCircle(px, py, 70, 950, this.damage, 0xff663d);
         });
       }
+      this.recoverUntil = time + 2400;
     } else if (attack === 'tornado') {
+      this.announceAttack('Tempest Seed', 0xb9e5ce);
       const velocity = new Phaser.Math.Vector2(direction.x, direction.y).rotate(Phaser.Math.FloatBetween(-0.8, 0.8)).scale(85);
       this.host.createMovingHazard(this.x, this.y, velocity, this.damage * 0.8);
+      this.recoverUntil = time + 1100;
     } else {
+      this.announceAttack('Call of the Wild', 0x8ed977);
       const summonKinds: EnemyKind[] = ['wolf', 'bat', 'skeleton'];
       for (let i = 0; i < (this.phase === 4 ? 5 : 3); i += 1) {
         this.host.spawnEnemy(summonKinds[i % summonKinds.length], this.x + Phaser.Math.Between(-120, 120), this.y + Phaser.Math.Between(-120, 120));
       }
+      this.recoverUntil = time + 1500;
     }
-    this.nextAttackAt = time + cadence;
+    const cadenceMultiplier: Record<typeof attack, number> = {
+      fireball: 0.9, claw: 0.9, tail: 1, breath: 1.2, dash: 1.25, meteor: 1.8, tornado: 1, summon: 2,
+    };
+    this.scheduleNextAttack(time, cadenceMultiplier[attack]);
+  }
+
+  private scheduleNextAttack(time: number, multiplier = 1): void {
+    const tuning = BOSS_BALANCE[this.kind];
+    const cadence = this.phase >= 2 ? tuning.enragedCadence : tuning.cadence;
+    const minimum = this.kind === 'ancientBeast' || this.kind === 'dragon' ? 2200 : 1600;
+    this.nextAttackAt = time + Math.max(minimum, cadence * multiplier);
   }
 
   onObstacleCollision(): void {
@@ -573,7 +654,14 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
   private announceAttack(name: string, color: number): void {
     this.lastAttack = name;
     this.attacksUsed.add(name);
+    const duration = /inferno|meteor|breath|pounce|dive|charge|earth|cyclone/i.test(name) ? 1250 : 820;
+    this.visual.playAttack(name, duration);
     this.host.floatingText(this.x, this.y - 50, name.toUpperCase(), `#${color.toString(16).padStart(6, '0')}`, false);
+  }
+
+  private setBossAlpha(alpha: number): void {
+    this.visualAlpha = Phaser.Math.Clamp(alpha, 0, 1);
+    this.visual.setAlpha(this.visualAlpha);
   }
 
   private restoreBossTint(): void {
@@ -589,11 +677,13 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
 
   private telegraphCharge(direction: Phaser.Math.Vector2, warningMs: number, speed: number, recoveryMs = 520, fireTrail = false): void {
     const token = this.generation;
+    this.chargeWindupUntil = this.scene.time.now + warningMs;
     this.setTint(0xffd071).setVelocity(0);
     this.host.playSfx('boss-charge', 0.54);
     this.host.burst(this.x, this.y, 0xffd071, 12, 90);
     this.scene.time.delayedCall(warningMs, () => {
-      if (!this.active || this.generation !== token) return;
+      if (!this.active || this.generation !== token || this.dying) return;
+      this.chargeWindupUntil = 0;
       this.restoreBossTint();
       this.chargeVelocity.copy(direction).scale(speed);
       this.chargeUntil = this.scene.time.now + 720;

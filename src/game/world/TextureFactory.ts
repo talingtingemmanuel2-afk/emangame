@@ -361,8 +361,355 @@ function createIcon(
   });
 }
 
+function createBossRigTextures(scene: Phaser.Scene): void {
+  // Monster Rooster: separate tail, torso, wings, neck, head, and talons keep the
+  // assembled creature readable during attack poses.
+  createTexture(scene, 'rig-rooster-tail', 48, 42, (context) => {
+    polygon(context, PALETTE.ink, [[45, 18], [32, 2], [25, 4], [30, 18], [14, 5], [7, 9], [22, 23], [1, 18], [0, 25], [24, 33], [11, 38], [17, 42], [38, 30], [47, 27]]);
+    polygon(context, '#6f294d', [[43, 20], [32, 6], [29, 8], [34, 22], [15, 9], [12, 12], [27, 26], [5, 22], [5, 25], [29, 30], [17, 37], [21, 38], [40, 27]]);
+    pixelLine(context, '#e65950', 3, [[42, 23], [16, 12]]);
+    pixelLine(context, '#f28b52', 3, [[42, 25], [7, 24]]);
+    pixelLine(context, '#b96ac4', 2, [[40, 28], [18, 37]]);
+  });
+  createTexture(scene, 'rig-rooster-body', 40, 44, (context) => {
+    polygon(context, PALETTE.ink, [[12, 1], [28, 1], [38, 10], [40, 29], [31, 42], [20, 44], [8, 40], [0, 28], [2, 11]]);
+    polygon(context, '#b72f3e', [[13, 4], [27, 4], [35, 12], [36, 28], [29, 38], [19, 41], [10, 37], [4, 27], [5, 13]]);
+    polygon(context, '#e65347', [[17, 5], [29, 10], [31, 28], [23, 36], [12, 31], [9, 15]]);
+    polygon(context, '#6c2943', [[5, 28], [15, 31], [20, 42], [9, 38]]);
+    rect(context, PALETTE.gold, 7, 20, 27, 4);
+    rect(context, PALETTE.goldLight, 17, 19, 7, 3);
+    polygon(context, '#f69b58', [[12, 35], [19, 39], [15, 41]]);
+    polygon(context, '#f69b58', [[27, 34], [22, 39], [27, 40]]);
+  });
+  createTexture(scene, 'rig-rooster-wing', 32, 34, (context) => {
+    polygon(context, PALETTE.ink, [[4, 0], [19, 4], [31, 13], [28, 26], [17, 34], [7, 29], [0, 15]]);
+    polygon(context, '#d94842', [[5, 4], [18, 7], [27, 14], [25, 23], [17, 30], [9, 26], [4, 15]]);
+    polygon(context, '#f27d4d', [[8, 10], [23, 14], [18, 18], [25, 21], [17, 24], [21, 28], [11, 25], [5, 16]]);
+    pixelLine(context, PALETTE.gold, 2, [[7, 7], [24, 17]]);
+  });
+  createTexture(scene, 'rig-rooster-neck', 18, 30, (context) => {
+    polygon(context, PALETTE.ink, [[5, 0], [15, 1], [18, 24], [12, 30], [3, 26], [0, 8]]);
+    polygon(context, '#d34442', [[6, 3], [13, 4], [15, 23], [11, 27], [5, 24], [3, 8]]);
+    rect(context, PALETTE.gold, 4, 19, 11, 3); rect(context, '#f8914f', 5, 8, 3, 8);
+  });
+  createTexture(scene, 'rig-rooster-head', 32, 26, (context) => {
+    polygon(context, PALETTE.ink, [[4, 2], [20, 0], [30, 8], [31, 18], [22, 25], [8, 24], [0, 16], [0, 7]]);
+    polygon(context, '#c5323e', [[5, 5], [19, 3], [27, 9], [27, 17], [20, 22], [8, 21], [3, 15], [3, 8]]);
+    polygon(context, '#ec6550', [[7, 5], [19, 4], [25, 9], [19, 12], [6, 10]]);
+    rect(context, PALETTE.yellowLight, 20, 10, 5, 4); rect(context, PALETTE.ink, 21, 11, 2, 2);
+    polygon(context, '#7b2138', [[8, 18], [14, 23], [5, 22]]);
+  });
+  createTexture(scene, 'rig-rooster-beak', 22, 12, (context) => {
+    polygon(context, PALETTE.ink, [[0, 1], [13, 0], [22, 5], [14, 11], [1, 10]]);
+    polygon(context, '#f1bd4e', [[2, 3], [13, 2], [19, 5], [13, 6], [2, 6]]);
+    polygon(context, '#cf793d', [[2, 7], [14, 7], [18, 6], [13, 9], [3, 9]]);
+  });
+  createTexture(scene, 'rig-rooster-comb', 18, 15, (context) => {
+    polygon(context, PALETTE.ink, [[1, 14], [0, 7], [3, 1], [7, 7], [10, 0], [12, 7], [17, 2], [18, 14]]);
+    polygon(context, '#ef4b50', [[3, 12], [3, 7], [4, 4], [7, 10], [10, 3], [11, 10], [15, 5], [15, 12]]);
+  });
+  createTexture(scene, 'rig-rooster-leg', 10, 30, (context) => {
+    polygon(context, PALETTE.ink, [[2, 0], [9, 0], [8, 19], [6, 29], [1, 29], [3, 18]]);
+    polygon(context, '#d99b45', [[4, 2], [7, 2], [6, 18], [5, 26], [3, 26], [5, 17]]);
+    rect(context, PALETTE.goldLight, 3, 8, 4, 2); rect(context, PALETTE.goldLight, 3, 15, 4, 2);
+  });
+  createTexture(scene, 'rig-rooster-talon', 22, 10, (context) => {
+    pixelLine(context, PALETTE.ink, 4, [[11, 2], [5, 7], [0, 8]]); pixelLine(context, PALETTE.ink, 4, [[11, 2], [12, 8], [17, 9]]);
+    pixelLine(context, PALETTE.ink, 3, [[11, 3], [17, 5], [21, 3]]); pixelLine(context, PALETTE.goldLight, 2, [[11, 3], [5, 7], [1, 8]]);
+    pixelLine(context, PALETTE.goldLight, 2, [[12, 3], [13, 7], [17, 8]]);
+  });
+
+  // Troll: a small head and short legs sit apart from giant shoulders, hands,
+  // and club, avoiding the former rock-circle silhouette.
+  createTexture(scene, 'rig-troll-body', 54, 52, (context) => {
+    polygon(context, PALETTE.ink, [[8, 5], [22, 0], [39, 3], [52, 14], [54, 36], [42, 51], [16, 52], [2, 40], [0, 17]]);
+    polygon(context, '#42633b', [[10, 8], [23, 4], [37, 6], [48, 16], [50, 35], [39, 47], [17, 48], [6, 38], [4, 18]]);
+    polygon(context, '#6e8b4a', [[13, 12], [29, 6], [44, 16], [42, 35], [31, 43], [14, 38], [8, 23]]);
+    polygon(context, PALETTE.stone, [[5, 13], [17, 5], [23, 15], [15, 24], [5, 22]]);
+    polygon(context, PALETTE.stoneDark, [[37, 8], [48, 16], [46, 25], [36, 19]]);
+    pixelLine(context, '#8fc56b', 3, [[11, 35], [22, 42], [35, 42]]); rect(context, '#d79c56', 17, 26, 12, 3);
+  });
+  createTexture(scene, 'rig-troll-arm', 20, 50, (context) => {
+    polygon(context, PALETTE.ink, [[5, 0], [16, 1], [20, 27], [18, 44], [13, 50], [3, 48], [0, 41], [2, 19]]);
+    polygon(context, '#557544', [[7, 3], [14, 4], [17, 27], [15, 40], [11, 46], [5, 44], [3, 39], [5, 19]]);
+    polygon(context, '#789450', [[7, 7], [12, 5], [14, 25], [9, 31], [5, 22]]);
+    rect(context, PALETTE.stone, 3, 12, 14, 7); pixelLine(context, '#b1d272', 2, [[6, 35], [14, 38]]);
+    rect(context, PALETTE.ink, 3, 44, 3, 5); rect(context, PALETTE.ink, 8, 45, 3, 5); rect(context, PALETTE.ink, 13, 43, 3, 5);
+  });
+  createTexture(scene, 'rig-troll-leg', 20, 34, (context) => {
+    polygon(context, PALETTE.ink, [[3, 0], [17, 0], [18, 22], [20, 31], [14, 34], [1, 33], [0, 28], [3, 20]]);
+    polygon(context, '#4b6b3f', [[5, 3], [15, 3], [15, 21], [17, 28], [13, 30], [3, 30], [3, 27], [6, 20]]);
+    rect(context, PALETTE.stoneDark, 3, 22, 13, 6); rect(context, '#80a15a', 5, 10, 8, 3);
+  });
+  createTexture(scene, 'rig-troll-head', 34, 28, (context) => {
+    polygon(context, PALETTE.ink, [[5, 2], [23, 0], [33, 8], [34, 19], [26, 27], [8, 28], [0, 20], [1, 8]]);
+    polygon(context, '#668049', [[7, 5], [22, 3], [30, 9], [30, 18], [24, 23], [9, 24], [4, 18], [4, 9]]);
+    polygon(context, '#8ba85b', [[8, 6], [20, 4], [25, 9], [8, 12]]);
+    rect(context, PALETTE.yellowLight, 9, 13, 5, 4); rect(context, PALETTE.yellowLight, 22, 12, 5, 4);
+    rect(context, PALETTE.ink, 11, 14, 2, 2); rect(context, PALETTE.ink, 23, 13, 2, 2);
+    rect(context, '#bb6f51', 2, 4, 7, 3); rect(context, '#75a85a', 25, 20, 5, 4);
+  });
+  createTexture(scene, 'rig-troll-jaw', 26, 12, (context) => {
+    polygon(context, PALETTE.ink, [[1, 0], [25, 0], [22, 10], [5, 12], [0, 7]]);
+    polygon(context, '#3c4b34', [[3, 2], [23, 2], [20, 8], [6, 9], [3, 6]]);
+    rect(context, PALETTE.bone, 5, 2, 4, 5); rect(context, PALETTE.bone, 16, 2, 4, 5);
+  });
+  createTexture(scene, 'rig-troll-club', 20, 66, (context) => {
+    rect(context, PALETTE.ink, 7, 18, 7, 48); rect(context, '#755036', 9, 18, 4, 48);
+    polygon(context, PALETTE.ink, [[2, 0], [16, 2], [20, 14], [14, 24], [2, 21], [0, 10]]);
+    polygon(context, PALETTE.stoneDark, [[4, 3], [14, 5], [17, 13], [12, 20], [4, 18], [3, 10]]);
+    rect(context, PALETTE.stoneLight, 5, 5, 7, 4); pixelLine(context, '#91b45f', 2, [[11, 28], [9, 44]]);
+  });
+
+  // Minotaur: bull head parts sit above a separate armored humanoid torso.
+  createTexture(scene, 'rig-minotaur-body', 48, 50, (context) => {
+    polygon(context, PALETTE.ink, [[7, 4], [18, 0], [33, 1], [45, 8], [48, 31], [39, 49], [11, 50], [1, 34], [0, 12]]);
+    polygon(context, '#6f432e', [[9, 7], [19, 4], [32, 4], [41, 10], [44, 30], [36, 45], [13, 46], [5, 32], [4, 14]]);
+    polygon(context, '#4a3440', [[9, 16], [39, 15], [41, 37], [32, 44], [15, 43], [7, 34]]);
+    rect(context, PALETTE.gold, 7, 27, 35, 5); rect(context, PALETTE.goldLight, 19, 26, 10, 3);
+    polygon(context, '#9b6742', [[14, 7], [24, 4], [34, 8], [30, 16], [17, 16]]);
+  });
+  createTexture(scene, 'rig-minotaur-arm', 16, 40, (context) => {
+    polygon(context, PALETTE.ink, [[3, 0], [13, 1], [16, 24], [13, 39], [5, 40], [0, 34], [2, 18]]);
+    polygon(context, '#8f5d3c', [[5, 3], [11, 3], [13, 23], [11, 35], [6, 36], [3, 32], [5, 18]]);
+    rect(context, '#3e3540', 2, 12, 12, 8); rect(context, PALETTE.gold, 3, 18, 10, 3);
+  });
+  createTexture(scene, 'rig-minotaur-leg', 18, 38, (context) => {
+    polygon(context, PALETTE.ink, [[3, 0], [15, 0], [15, 22], [18, 33], [14, 38], [3, 37], [0, 32], [4, 21]]);
+    polygon(context, '#70442f', [[5, 3], [13, 3], [12, 22], [15, 31], [12, 34], [4, 34], [3, 31], [7, 21]]);
+    polygon(context, '#2b2630', [[3, 30], [15, 30], [15, 36], [9, 38], [2, 35]]); rect(context, PALETTE.gold, 4, 17, 9, 3);
+  });
+  createTexture(scene, 'rig-minotaur-head', 42, 30, (context) => {
+    polygon(context, PALETTE.ink, [[7, 3], [18, 0], [31, 2], [41, 9], [39, 21], [31, 29], [13, 29], [2, 21], [0, 10]]);
+    polygon(context, '#815038', [[8, 6], [18, 3], [29, 5], [37, 10], [35, 20], [29, 25], [13, 25], [5, 19], [4, 11]]);
+    polygon(context, '#ac744b', [[9, 6], [21, 3], [31, 8], [26, 12], [10, 12]]);
+    rect(context, PALETTE.yellowLight, 9, 14, 6, 4); rect(context, PALETTE.yellowLight, 28, 14, 6, 4);
+    rect(context, PALETTE.redLight, 11, 15, 3, 2); rect(context, PALETTE.redLight, 29, 15, 3, 2);
+    polygon(context, '#68402e', [[1, 11], [7, 8], [7, 16], [1, 18]]); polygon(context, '#68402e', [[40, 10], [35, 8], [35, 16], [41, 18]]);
+  });
+  createTexture(scene, 'rig-minotaur-horn', 26, 18, (context) => {
+    polygon(context, PALETTE.ink, [[24, 17], [15, 17], [6, 13], [0, 5], [1, 0], [8, 7], [17, 10], [26, 11]]);
+    polygon(context, PALETTE.bone, [[23, 14], [16, 14], [8, 11], [3, 5], [3, 3], [9, 8], [18, 11], [24, 12]]);
+    rect(context, PALETTE.boneShadow, 15, 12, 7, 3);
+  });
+  createTexture(scene, 'rig-minotaur-snout', 26, 14, (context) => {
+    polygon(context, PALETTE.ink, [[3, 1], [21, 0], [26, 6], [22, 13], [5, 14], [0, 8]]);
+    polygon(context, '#a8734f', [[4, 3], [20, 3], [23, 6], [20, 10], [6, 11], [3, 8]]);
+    rect(context, PALETTE.ink, 6, 6, 4, 3); rect(context, PALETTE.ink, 17, 5, 4, 3); rect(context, '#d19864', 10, 3, 6, 2);
+  });
+  createTexture(scene, 'rig-minotaur-axe', 28, 70, (context) => {
+    rect(context, PALETTE.ink, 12, 16, 6, 54); rect(context, '#7a4b36', 14, 16, 3, 54);
+    polygon(context, PALETTE.ink, [[0, 3], [12, 0], [27, 7], [24, 22], [16, 18], [8, 23], [1, 18]]);
+    polygon(context, '#a8afb8', [[3, 5], [12, 3], [24, 8], [22, 18], [16, 14], [8, 20], [3, 16]]);
+    pixelLine(context, PALETTE.white, 2, [[5, 6], [20, 10]]); rect(context, PALETTE.gold, 10, 15, 10, 4);
+  });
+
+  // Werewolf: long muzzle, tail, claws, and digitigrade legs replace the old mask-like body.
+  createTexture(scene, 'rig-werewolf-tail', 42, 16, (context) => {
+    polygon(context, PALETTE.ink, [[41, 4], [28, 1], [13, 0], [0, 5], [8, 10], [22, 15], [36, 13], [42, 9]]);
+    polygon(context, '#4f4a62', [[39, 6], [27, 4], [14, 3], [5, 6], [10, 8], [23, 12], [35, 10]]);
+    pixelLine(context, '#8a819e', 2, [[34, 6], [12, 6]]);
+  });
+  createTexture(scene, 'rig-werewolf-body', 46, 48, (context) => {
+    polygon(context, PALETTE.ink, [[6, 6], [17, 0], [32, 2], [43, 10], [46, 30], [37, 47], [12, 48], [1, 34], [0, 15]]);
+    polygon(context, '#403b52', [[8, 8], [18, 4], [30, 5], [39, 12], [42, 29], [34, 43], [14, 44], [5, 32], [4, 16]]);
+    polygon(context, '#6c657d', [[12, 8], [26, 5], [36, 15], [34, 31], [24, 39], [11, 33], [7, 18]]);
+    polygon(context, '#8f86a4', [[14, 12], [27, 8], [31, 14], [14, 20]]); pixelLine(context, '#bd5d6f', 2, [[9, 29], [20, 37]]);
+  });
+  createTexture(scene, 'rig-werewolf-arm', 18, 46, (context) => {
+    polygon(context, PALETTE.ink, [[3, 0], [14, 1], [18, 25], [15, 39], [18, 45], [13, 44], [10, 40], [9, 46], [5, 44], [4, 39], [0, 34], [2, 18]]);
+    polygon(context, '#554f69', [[5, 3], [12, 4], [15, 24], [12, 35], [8, 39], [3, 33], [5, 18]]);
+    polygon(context, '#8d84a4', [[5, 6], [11, 4], [13, 16], [6, 19]]);
+    pixelLine(context, PALETTE.bone, 2, [[7, 38], [5, 44]]); pixelLine(context, PALETTE.bone, 2, [[11, 38], [10, 45]]); pixelLine(context, PALETTE.bone, 2, [[13, 37], [16, 43]]);
+  });
+  createTexture(scene, 'rig-werewolf-leg', 18, 42, (context) => {
+    polygon(context, PALETTE.ink, [[3, 0], [15, 0], [14, 19], [8, 27], [16, 34], [18, 40], [11, 42], [3, 39], [0, 33], [5, 22]]);
+    polygon(context, '#484359', [[5, 3], [13, 3], [11, 18], [6, 26], [13, 34], [14, 38], [10, 39], [4, 36], [3, 33], [8, 21]]);
+    pixelLine(context, PALETTE.bone, 2, [[9, 38], [4, 41]]); pixelLine(context, PALETTE.bone, 2, [[12, 38], [16, 40]]);
+  });
+  createTexture(scene, 'rig-werewolf-head', 34, 30, (context) => {
+    polygon(context, PALETTE.ink, [[3, 10], [5, 0], [13, 8], [24, 7], [31, 0], [32, 11], [34, 20], [25, 29], [10, 28], [0, 20]]);
+    polygon(context, '#5a536d', [[5, 11], [7, 5], [13, 11], [23, 10], [29, 5], [29, 13], [31, 20], [24, 25], [11, 25], [4, 19]]);
+    polygon(context, '#827992', [[9, 12], [20, 10], [25, 15], [11, 18]]);
+    rect(context, PALETTE.redLight, 9, 17, 5, 3); rect(context, PALETTE.redLight, 23, 16, 5, 3);
+    rect(context, PALETTE.white, 11, 17, 2, 1); rect(context, PALETTE.white, 24, 16, 2, 1);
+  });
+  createTexture(scene, 'rig-werewolf-muzzle', 22, 14, (context) => {
+    polygon(context, PALETTE.ink, [[0, 2], [14, 0], [22, 5], [18, 13], [4, 14], [0, 9]]);
+    polygon(context, '#70677f', [[2, 4], [13, 3], [18, 5], [16, 9], [5, 11], [2, 8]]);
+    rect(context, PALETTE.ink, 16, 4, 6, 4);
+    polygon(context, PALETTE.bone, [[5, 10], [8, 14], [10, 9]]); polygon(context, PALETTE.bone, [[12, 9], [15, 13], [17, 8]]);
+  });
+
+  // Wyvern: wings are the broad front limbs; only two rear claws and a long tail remain.
+  createTexture(scene, 'rig-wyvern-tail', 46, 16, (context) => {
+    polygon(context, PALETTE.ink, [[45, 3], [30, 1], [16, 0], [0, 5], [9, 9], [20, 15], [35, 12], [46, 8]]);
+    polygon(context, '#98473f', [[43, 5], [29, 4], [17, 3], [5, 6], [11, 7], [21, 12], [34, 9], [43, 7]]);
+    polygon(context, '#ef9a58', [[12, 4], [17, 0], [19, 5]]); polygon(context, '#ef9a58', [[25, 6], [31, 2], [30, 8]]);
+  });
+  createTexture(scene, 'rig-wyvern-body', 52, 36, (context) => {
+    polygon(context, PALETTE.ink, [[5, 8], [19, 1], [36, 3], [50, 13], [52, 25], [39, 35], [19, 36], [2, 27], [0, 15]]);
+    polygon(context, '#9d493e', [[7, 10], [20, 4], [35, 6], [46, 14], [47, 24], [37, 31], [20, 32], [6, 25], [4, 15]]);
+    polygon(context, '#d76a44', [[15, 8], [30, 6], [42, 15], [38, 26], [23, 29], [11, 22]]);
+    rect(context, '#efb65e', 16, 25, 22, 3); pixelLine(context, '#f18b50', 2, [[12, 14], [35, 10]]);
+  });
+  createTexture(scene, 'rig-wyvern-wing', 62, 54, (context) => {
+    polygon(context, PALETTE.ink, [[55, 50], [42, 38], [21, 51], [26, 32], [4, 42], [17, 22], [0, 17], [25, 8], [36, 0], [38, 22], [60, 30], [62, 48]]);
+    polygon(context, '#773441', [[54, 46], [42, 34], [25, 46], [30, 28], [10, 36], [22, 18], [7, 17], [27, 11], [34, 5], [35, 25], [57, 32]]);
+    polygon(context, '#df7049', [[35, 25], [27, 12], [22, 19], [30, 29]]); polygon(context, '#c25745', [[35, 27], [30, 30], [25, 44], [41, 33]]);
+    pixelLine(context, '#f4a15e', 3, [[57, 45], [35, 25], [27, 12]]); pixelLine(context, '#f4a15e', 2, [[35, 25], [11, 35]]);
+  });
+  createTexture(scene, 'rig-wyvern-leg', 16, 32, (context) => {
+    polygon(context, PALETTE.ink, [[3, 0], [13, 0], [14, 19], [10, 26], [16, 31], [11, 32], [7, 28], [4, 32], [0, 30], [5, 23]]);
+    polygon(context, '#b35a40', [[5, 3], [11, 3], [11, 18], [8, 24], [6, 26], [3, 29], [8, 25], [11, 29], [13, 30], [9, 25]]);
+    pixelLine(context, PALETTE.goldLight, 2, [[7, 26], [3, 30]]); pixelLine(context, PALETTE.goldLight, 2, [[9, 26], [13, 30]]);
+  });
+  createTexture(scene, 'rig-wyvern-neck', 30, 20, (context) => {
+    polygon(context, PALETTE.ink, [[0, 9], [8, 1], [23, 0], [30, 8], [25, 17], [11, 20], [2, 16]]);
+    polygon(context, '#ad5140', [[3, 9], [9, 4], [22, 3], [27, 8], [23, 14], [11, 16], [4, 14]]);
+    pixelLine(context, '#ef9956', 2, [[7, 7], [21, 5]]);
+  });
+  createTexture(scene, 'rig-wyvern-head', 38, 24, (context) => {
+    polygon(context, PALETTE.ink, [[2, 5], [11, 0], [26, 2], [38, 9], [34, 20], [18, 24], [4, 19], [0, 12]]);
+    polygon(context, '#b94f40', [[5, 6], [12, 3], [25, 5], [34, 10], [31, 17], [18, 21], [6, 17], [3, 11]]);
+    polygon(context, '#ef8c4e', [[6, 6], [14, 2], [13, 8]]); polygon(context, '#ef8c4e', [[17, 4], [23, 0], [23, 6]]);
+    rect(context, PALETTE.yellowLight, 25, 10, 5, 3); rect(context, PALETTE.ink, 27, 10, 2, 2);
+    rect(context, '#772d35', 31, 16, 5, 2);
+  });
+  createTexture(scene, 'rig-wyvern-jaw', 26, 11, (context) => {
+    polygon(context, PALETTE.ink, [[0, 0], [25, 1], [22, 8], [7, 11], [0, 7]]);
+    polygon(context, '#7b3438', [[2, 2], [22, 3], [20, 6], [7, 8], [2, 6]]);
+    polygon(context, PALETTE.bone, [[7, 2], [10, 7], [12, 2]]); polygon(context, PALETTE.bone, [[15, 2], [18, 6], [20, 2]]);
+  });
+
+  // Ancient Beast: skeletal pieces, open ribs, torn membranes, vines, and a
+  // corruption crystal give it an unmistakably undead silhouette.
+  createTexture(scene, 'rig-ancient-tail', 42, 16, (context) => {
+    polygon(context, PALETTE.ink, [[41, 4], [29, 0], [17, 2], [0, 7], [12, 12], [26, 15], [40, 10]]);
+    pixelLine(context, PALETTE.bone, 5, [[39, 7], [28, 5], [18, 7], [5, 9]]);
+    rect(context, PALETTE.boneShadow, 25, 3, 3, 8); rect(context, PALETTE.boneShadow, 15, 5, 3, 7); rect(context, PALETTE.boneShadow, 7, 7, 3, 5);
+    polygon(context, '#6ad866', [[22, 4], [25, 0], [28, 5]]);
+  });
+  createTexture(scene, 'rig-ancient-body', 64, 50, (context) => {
+    polygon(context, PALETTE.ink, [[7, 8], [20, 1], [42, 2], [59, 12], [64, 31], [48, 48], [19, 50], [2, 37], [0, 17]]);
+    polygon(context, '#3c583b', [[9, 10], [20, 5], [40, 6], [55, 14], [59, 29], [46, 43], [20, 45], [6, 35], [4, 18]]);
+    polygon(context, '#6c3d69', [[7, 11], [19, 5], [21, 16], [10, 23]]); polygon(context, '#4b7a42', [[43, 7], [55, 15], [53, 25], [42, 19]]);
+    pixelLine(context, PALETTE.boneShadow, 5, [[20, 11], [18, 38]]); pixelLine(context, PALETTE.bone, 3, [[21, 12], [42, 12]]);
+    pixelLine(context, PALETTE.bone, 3, [[20, 17], [43, 18]]); pixelLine(context, PALETTE.bone, 3, [[19, 23], [43, 25]]);
+    pixelLine(context, PALETTE.bone, 3, [[19, 30], [40, 34]]); pixelLine(context, PALETTE.bone, 3, [[19, 37], [34, 42]]);
+    rect(context, PALETTE.ink, 24, 14, 5, 4); rect(context, PALETTE.ink, 31, 20, 6, 4); rect(context, PALETTE.ink, 24, 27, 5, 4);
+    rect(context, '#6ee96c', 47, 29, 5, 5); rect(context, '#c279df', 8, 30, 4, 5);
+  });
+  createTexture(scene, 'rig-ancient-wing', 74, 62, (context) => {
+    polygon(context, PALETTE.ink, [[69, 58], [52, 45], [40, 58], [34, 40], [20, 53], [23, 31], [6, 43], [15, 23], [0, 18], [29, 8], [43, 0], [45, 26], [73, 35]]);
+    polygon(context, '#543353', [[67, 54], [52, 41], [41, 53], [37, 35], [22, 48], [27, 27], [11, 38], [20, 19], [7, 18], [31, 11], [40, 5], [41, 29], [69, 37]]);
+    context.clearRect(18, 20, 10, 8); context.clearRect(30, 32, 9, 10); context.clearRect(45, 39, 10, 7); context.clearRect(9, 31, 8, 7);
+    pixelLine(context, PALETTE.bone, 4, [[70, 52], [42, 28], [40, 5]]); pixelLine(context, PALETTE.boneShadow, 3, [[42, 29], [19, 19]]);
+    pixelLine(context, PALETTE.boneShadow, 3, [[42, 29], [25, 46]]); pixelLine(context, PALETTE.boneShadow, 3, [[42, 30], [53, 42]]);
+    pixelLine(context, '#6fbb54', 2, [[39, 9], [31, 20], [34, 33]]);
+  });
+  createTexture(scene, 'rig-ancient-leg', 20, 38, (context) => {
+    pixelLine(context, PALETTE.ink, 7, [[9, 1], [13, 18], [7, 29]]); pixelLine(context, PALETTE.bone, 4, [[9, 2], [12, 18], [7, 29]]);
+    pixelLine(context, PALETTE.ink, 4, [[7, 29], [1, 37]]); pixelLine(context, PALETTE.ink, 4, [[8, 29], [10, 38]]); pixelLine(context, PALETTE.ink, 4, [[9, 29], [18, 35]]);
+    pixelLine(context, PALETTE.bone, 2, [[7, 29], [2, 36]]); pixelLine(context, PALETTE.bone, 2, [[9, 29], [17, 35]]);
+    polygon(context, '#514158', [[5, 6], [13, 4], [17, 13], [11, 17]]);
+  });
+  createTexture(scene, 'rig-ancient-neck', 34, 22, (context) => {
+    polygon(context, PALETTE.ink, [[0, 10], [8, 2], [25, 0], [34, 7], [29, 18], [12, 22], [2, 17]]);
+    pixelLine(context, PALETTE.boneShadow, 9, [[4, 12], [11, 7], [24, 5], [30, 9]]); pixelLine(context, PALETTE.bone, 5, [[5, 11], [12, 6], [24, 5], [29, 9]]);
+    rect(context, '#5c7d45', 8, 12, 8, 7); rect(context, '#684168', 23, 9, 7, 6);
+  });
+  createTexture(scene, 'rig-ancient-skull', 46, 28, (context) => {
+    polygon(context, PALETTE.ink, [[4, 4], [14, 0], [31, 3], [45, 10], [42, 21], [28, 27], [8, 25], [0, 17]]);
+    polygon(context, PALETTE.bone, [[6, 6], [15, 3], [30, 6], [41, 11], [38, 18], [27, 23], [10, 22], [4, 16]]);
+    polygon(context, PALETTE.boneShadow, [[7, 7], [17, 4], [13, 13], [5, 15]]); rect(context, PALETTE.ink, 14, 11, 8, 6);
+    rect(context, '#71ed68', 16, 12, 5, 3); rect(context, PALETTE.ink, 30, 15, 7, 4); rect(context, PALETTE.ink, 24, 20, 5, 4);
+    polygon(context, PALETTE.boneShadow, [[10, 4], [5, 0], [16, 3]]); polygon(context, PALETTE.bone, [[29, 5], [37, 0], [34, 9]]);
+    rect(context, '#67436e', 2, 17, 8, 5);
+  });
+  createTexture(scene, 'rig-ancient-jaw', 32, 13, (context) => {
+    polygon(context, PALETTE.ink, [[0, 0], [31, 1], [27, 10], [7, 13], [0, 8]]);
+    pixelLine(context, PALETTE.boneShadow, 6, [[3, 4], [14, 8], [27, 5]]); pixelLine(context, PALETTE.bone, 3, [[3, 3], [14, 6], [27, 4]]);
+    polygon(context, PALETTE.bone, [[8, 3], [11, 10], [14, 4]]); polygon(context, PALETTE.bone, [[18, 4], [21, 9], [23, 3]]);
+  });
+  createTexture(scene, 'rig-ancient-vines', 32, 38, (context) => {
+    pixelLine(context, '#285f39', 3, [[16, 0], [13, 10], [20, 20], [14, 37]]); pixelLine(context, '#4e9d4c', 2, [[16, 1], [14, 10], [21, 20], [15, 36]]);
+    polygon(context, '#76bd5c', [[12, 8], [3, 5], [9, 14]]); polygon(context, '#76bd5c', [[20, 18], [30, 14], [23, 24]]);
+    polygon(context, '#9bc85a', [[14, 29], [5, 31], [13, 35]]);
+  });
+  createTexture(scene, 'rig-ancient-crystal', 18, 22, (context) => {
+    polygon(context, PALETTE.ink, [[9, 0], [17, 7], [14, 21], [4, 22], [0, 9]]);
+    polygon(context, '#7f4e9d', [[9, 3], [14, 8], [12, 18], [6, 19], [3, 9]]);
+    polygon(context, '#d48cf1', [[9, 3], [10, 15], [6, 18], [4, 9]]); rect(context, '#f0c2ff', 7, 6, 3, 6);
+  });
+
+  // Final Dragon: intact broad wings, plated torso, long neck, articulated claws,
+  // horns, jaws, and spiked tail form the strongest silhouette in the set.
+  createTexture(scene, 'rig-dragon-tail', 48, 18, (context) => {
+    polygon(context, PALETTE.ink, [[47, 3], [33, 0], [18, 2], [0, 7], [10, 11], [22, 17], [38, 14], [48, 9]]);
+    polygon(context, PALETTE.redDark, [[45, 5], [32, 3], [19, 5], [5, 8], [12, 9], [23, 14], [37, 11], [45, 8]]);
+    polygon(context, PALETTE.gold, [[10, 6], [15, 0], [17, 7]]); polygon(context, PALETTE.gold, [[23, 5], [29, 0], [29, 7]]); polygon(context, PALETTE.gold, [[35, 6], [41, 2], [40, 9]]);
+    pixelLine(context, PALETTE.redLight, 2, [[41, 7], [15, 8]]);
+  });
+  createTexture(scene, 'rig-dragon-body', 68, 54, (context) => {
+    polygon(context, PALETTE.ink, [[8, 8], [23, 1], [46, 2], [64, 13], [68, 34], [51, 52], [20, 54], [2, 40], [0, 18]]);
+    polygon(context, '#8d2f3e', [[10, 10], [24, 5], [44, 6], [59, 15], [63, 32], [48, 47], [22, 49], [7, 37], [5, 19]]);
+    polygon(context, '#cf4d4b', [[16, 10], [34, 5], [53, 15], [52, 34], [40, 44], [20, 40], [10, 23]]);
+    polygon(context, PALETTE.goldDark, [[18, 25], [54, 24], [49, 30], [21, 31]]);
+    polygon(context, PALETTE.gold, [[20, 31], [48, 31], [44, 37], [24, 37]]);
+    pixelLine(context, PALETTE.redLight, 3, [[13, 16], [35, 10], [55, 18]]);
+    polygon(context, PALETTE.gold, [[14, 8], [19, 0], [22, 8]]); polygon(context, PALETTE.gold, [[29, 5], [34, 0], [37, 6]]);
+  });
+  createTexture(scene, 'rig-dragon-wing', 88, 74, (context) => {
+    polygon(context, PALETTE.ink, [[84, 69], [61, 52], [48, 70], [42, 47], [21, 67], [28, 38], [5, 55], [17, 28], [0, 21], [37, 9], [55, 0], [55, 34], [86, 43]]);
+    polygon(context, '#702b42', [[82, 64], [61, 47], [49, 64], [46, 41], [24, 61], [33, 32], [12, 49], [23, 23], [9, 21], [40, 12], [51, 5], [51, 38], [82, 46]]);
+    polygon(context, '#bd3e4a', [[50, 37], [41, 14], [24, 24], [34, 33]]); polygon(context, '#9c3347', [[48, 40], [34, 34], [25, 57], [45, 39]]);
+    polygon(context, '#d95650', [[52, 39], [61, 48], [49, 61], [46, 42]]);
+    pixelLine(context, PALETTE.goldDark, 4, [[83, 62], [51, 38], [51, 5]]); pixelLine(context, PALETTE.gold, 2, [[51, 38], [22, 23]]);
+    pixelLine(context, PALETTE.gold, 2, [[51, 39], [29, 55]]); pixelLine(context, PALETTE.gold, 2, [[52, 40], [62, 48]]);
+  });
+  createTexture(scene, 'rig-dragon-rear-leg', 22, 42, (context) => {
+    polygon(context, PALETTE.ink, [[4, 0], [18, 1], [20, 23], [14, 33], [22, 40], [16, 42], [10, 36], [7, 42], [1, 40], [0, 34], [7, 24]]);
+    polygon(context, '#a33b43', [[6, 3], [16, 4], [17, 22], [11, 31], [16, 38], [14, 39], [9, 33], [6, 39], [3, 38], [3, 35], [10, 23]]);
+    rect(context, PALETTE.gold, 5, 16, 12, 3);
+    pixelLine(context, PALETTE.bone, 2, [[11, 34], [6, 40]]); pixelLine(context, PALETTE.bone, 2, [[13, 34], [19, 39]]);
+  });
+  createTexture(scene, 'rig-dragon-foreleg', 18, 38, (context) => {
+    polygon(context, PALETTE.ink, [[3, 0], [15, 1], [17, 22], [13, 32], [18, 37], [13, 38], [9, 34], [7, 38], [2, 37], [0, 32], [5, 22]]);
+    polygon(context, '#bd4548', [[5, 3], [13, 4], [14, 21], [10, 29], [13, 34], [11, 35], [8, 31], [6, 35], [3, 34], [3, 32], [8, 21]]);
+    pixelLine(context, PALETTE.goldLight, 2, [[9, 31], [5, 36]]); pixelLine(context, PALETTE.goldLight, 2, [[11, 31], [16, 36]]);
+  });
+  createTexture(scene, 'rig-dragon-neck', 40, 24, (context) => {
+    polygon(context, PALETTE.ink, [[0, 11], [10, 2], [29, 0], [40, 8], [34, 20], [14, 24], [2, 18]]);
+    polygon(context, '#9e3440', [[4, 11], [11, 5], [28, 4], [36, 9], [31, 17], [14, 20], [5, 16]]);
+    polygon(context, '#dd5950', [[9, 9], [24, 5], [32, 9], [21, 12]]);
+    polygon(context, PALETTE.gold, [[10, 5], [13, 0], [17, 5]]); polygon(context, PALETTE.gold, [[23, 3], [27, 0], [29, 5]]);
+  });
+  createTexture(scene, 'rig-dragon-head', 48, 30, (context) => {
+    polygon(context, PALETTE.ink, [[4, 5], [15, 0], [33, 3], [48, 11], [44, 23], [28, 30], [9, 27], [0, 18]]);
+    polygon(context, '#ad3743', [[6, 7], [16, 3], [32, 6], [43, 12], [40, 20], [27, 26], [11, 23], [4, 17]]);
+    polygon(context, '#e05a50', [[9, 7], [19, 3], [33, 8], [29, 13], [9, 13]]);
+    rect(context, PALETTE.yellowLight, 31, 13, 6, 4); rect(context, PALETTE.ink, 34, 14, 2, 2);
+    rect(context, PALETTE.ink, 39, 20, 6, 3); rect(context, PALETTE.gold, 9, 18, 7, 3);
+    polygon(context, PALETTE.gold, [[10, 6], [6, 0], [17, 4]]); polygon(context, PALETTE.gold, [[26, 5], [34, 0], [33, 8]]);
+  });
+  createTexture(scene, 'rig-dragon-jaw', 34, 14, (context) => {
+    polygon(context, PALETTE.ink, [[0, 0], [33, 1], [30, 10], [9, 14], [0, 9]]);
+    polygon(context, '#792d3a', [[2, 2], [30, 3], [27, 8], [9, 11], [2, 7]]);
+    polygon(context, PALETTE.bone, [[8, 2], [11, 10], [14, 3]]); polygon(context, PALETTE.bone, [[18, 3], [21, 9], [24, 2]]); polygon(context, PALETTE.bone, [[26, 2], [28, 7], [31, 2]]);
+    rect(context, PALETTE.redLight, 9, 9, 14, 2);
+  });
+  createTexture(scene, 'rig-dragon-horn', 20, 20, (context) => {
+    polygon(context, PALETTE.ink, [[18, 19], [9, 17], [2, 10], [0, 0], [5, 7], [12, 12], [20, 13]]);
+    polygon(context, PALETTE.gold, [[17, 16], [10, 14], [5, 9], [2, 3], [6, 8], [13, 13], [18, 14]]);
+    rect(context, PALETTE.goldLight, 9, 12, 6, 2);
+  });
+
+}
+
 /** Creates the complete original procedural pixel-art texture set used by the game. */
 export function createGameTextures(scene: Phaser.Scene): void {
+  createBossRigTextures(scene);
   createTexture(scene, 'ground-grass', 32, 32, (context) => {
     rect(context, PALETTE.grass, 0, 0, 32, 32);
     rect(context, PALETTE.grassDark, 2, 5, 3, 2);
@@ -648,48 +995,74 @@ export function createGameTextures(scene: Phaser.Scene): void {
     pixelLine(context, PALETTE.stoneLight, 2, [[17, 10], [24, 12], [31, 9]]); rect(context, PALETTE.redDark, 8, 15, 4, 2);
   });
 
-  createTexture(scene, 'enemy-spider', 38, 30, (context) => {
-    pixelLine(context, '#25172f', 3, [[17, 14], [3, 3]]); pixelLine(context, '#25172f', 3, [[17, 17], [1, 26]]);
-    pixelLine(context, '#25172f', 3, [[21, 14], [35, 3]]); pixelLine(context, '#25172f', 3, [[21, 17], [37, 26]]);
-    polygon(context, '#25172f', [[10, 8], [19, 4], [29, 10], [27, 23], [19, 29], [10, 21]]);
-    polygon(context, '#74508e', [[13, 10], [19, 7], [26, 12], [24, 21], [19, 25], [13, 19]]);
-    rect(context, '#f1668b', 14, 12, 4, 3); rect(context, '#f1668b', 21, 12, 4, 3);
-    rect(context, '#c996d7', 17, 17, 4, 3); rect(context, '#75d06a', 18, 23, 3, 3);
+  createTexture(scene, 'enemy-spider', 38, 32, (context) => {
+    // Eight separately angled legs surround a small head and distinct abdomen.
+    pixelLine(context, '#25172f', 3, [[16, 13], [8, 7], [1, 1]]); pixelLine(context, '#25172f', 3, [[15, 15], [6, 13], [0, 10]]);
+    pixelLine(context, '#25172f', 3, [[15, 18], [6, 20], [0, 25]]); pixelLine(context, '#25172f', 3, [[17, 20], [9, 27], [4, 31]]);
+    pixelLine(context, '#25172f', 3, [[22, 13], [30, 7], [37, 1]]); pixelLine(context, '#25172f', 3, [[23, 15], [32, 13], [38, 10]]);
+    pixelLine(context, '#25172f', 3, [[23, 18], [32, 20], [38, 25]]); pixelLine(context, '#25172f', 3, [[21, 20], [29, 27], [34, 31]]);
+    polygon(context, PALETTE.ink, [[11, 7], [19, 3], [27, 8], [26, 18], [19, 21], [11, 17]]);
+    polygon(context, '#74508e', [[13, 8], [19, 5], [24, 9], [23, 16], [19, 18], [13, 15]]);
+    polygon(context, PALETTE.ink, [[14, 17], [24, 17], [28, 24], [24, 30], [14, 30], [10, 24]]);
+    polygon(context, '#563768', [[15, 19], [23, 19], [25, 24], [22, 28], [15, 27], [13, 23]]);
+    rect(context, '#f1668b', 14, 11, 3, 3); rect(context, '#f1668b', 21, 11, 3, 3);
+    polygon(context, PALETTE.bone, [[15, 16], [17, 22], [19, 16]]); polygon(context, PALETTE.bone, [[20, 16], [22, 22], [24, 16]]);
+    polygon(context, '#75d06a', [[17, 21], [22, 21], [24, 25], [19, 27], [15, 24]]);
   });
-  createTexture(scene, 'enemy-zombie', 34, 43, (context) => {
-    polygon(context, '#15241c', [[8, 3], [24, 2], [29, 10], [26, 22], [30, 40], [22, 43], [17, 31], [12, 43], [4, 40], [8, 23], [4, 13]]);
-    rect(context, '#6f9668', 9, 5, 16, 15); rect(context, '#53624f', 7, 21, 20, 14);
-    rect(context, '#d7e36a', 11, 11, 3, 3); rect(context, '#d7e36a', 20, 11, 3, 3); rect(context, '#6f2930', 15, 17, 6, 2);
-    rect(context, '#934a48', 4, 25, 7, 4); rect(context, '#b8c49a', 23, 5, 5, 3); pixelLine(context, '#404d3e', 2, [[14, 24], [24, 29]]);
+  createTexture(scene, 'enemy-zombie', 38, 43, (context) => {
+    // Head, reaching arms, torso and separated dragging legs remain independently readable.
+    polygon(context, '#15241c', [[9, 2], [24, 1], [30, 7], [28, 19], [21, 23], [9, 20], [4, 13]]);
+    polygon(context, '#6f9668', [[10, 4], [23, 4], [27, 8], [25, 17], [20, 20], [10, 17], [7, 12]]);
+    rect(context, '#d7e36a', 11, 10, 3, 3); rect(context, '#d7e36a', 21, 9, 3, 3);
+    polygon(context, '#3b2830', [[10, 16], [24, 15], [22, 21], [14, 22], [8, 19]]); rect(context, PALETTE.bone, 14, 17, 3, 4); rect(context, PALETTE.bone, 20, 16, 3, 4);
+    polygon(context, '#53624f', [[8, 20], [26, 20], [28, 34], [20, 36], [17, 31], [13, 36], [6, 34]]);
+    pixelLine(context, '#6f9668', 5, [[9, 22], [2, 27], [0, 34]]); pixelLine(context, '#6f9668', 5, [[25, 22], [32, 25], [37, 31]]);
+    rect(context, '#934a48', 0, 31, 5, 4); rect(context, '#b8c49a', 33, 29, 5, 3);
+    polygon(context, '#404d3e', [[8, 32], [15, 32], [14, 43], [5, 42]]); polygon(context, '#404d3e', [[20, 32], [27, 32], [32, 41], [23, 43]]);
+    rect(context, PALETTE.ink, 15, 33, 5, 10); pixelLine(context, '#934a48', 2, [[13, 24], [24, 29]]);
   });
-  createTexture(scene, 'enemy-mushroom', 38, 40, (context) => {
-    polygon(context, '#201521', [[3, 17], [8, 5], [19, 0], [31, 5], [36, 17], [30, 23], [25, 22], [28, 39], [10, 39], [13, 22], [7, 23]]);
-    polygon(context, '#b65f8b', [[5, 16], [10, 7], [19, 3], [29, 8], [34, 16], [28, 20], [10, 20]]);
-    rect(context, '#f2c7d9', 14, 22, 11, 15); rect(context, '#fff0d7', 11, 10, 5, 4); rect(context, '#fff0d7', 24, 7, 4, 4);
-    rect(context, '#6f254f', 9, 15, 4, 3); rect(context, '#6f254f', 26, 14, 4, 3); rect(context, '#e6b0cf', 17, 26, 2, 5);
+  createTexture(scene, 'enemy-mushroom', 40, 42, (context) => {
+    polygon(context, '#201521', [[3, 17], [8, 5], [20, 0], [32, 5], [38, 17], [31, 23], [26, 22], [27, 36], [35, 39], [29, 42], [21, 38], [12, 42], [5, 39], [13, 35], [14, 22], [7, 23]]);
+    polygon(context, '#b65f8b', [[5, 16], [10, 7], [20, 3], [30, 8], [36, 16], [29, 20], [10, 20]]);
+    rect(context, '#f2c7d9', 15, 22, 11, 16); rect(context, '#fff0d7', 11, 10, 5, 4); rect(context, '#fff0d7', 25, 7, 4, 4);
+    rect(context, '#6f254f', 9, 15, 4, 3); rect(context, '#6f254f', 27, 14, 4, 3); rect(context, '#e6b0cf', 18, 26, 2, 5);
+    pixelLine(context, '#d7a8c7', 3, [[15, 27], [7, 31], [3, 35]]); pixelLine(context, '#d7a8c7', 3, [[25, 27], [32, 31], [37, 34]]);
+    pixelLine(context, '#f2c7d9', 2, [[14, 36], [8, 40]]); pixelLine(context, '#f2c7d9', 2, [[25, 36], [31, 40]]);
   });
-  createTexture(scene, 'enemy-plant', 38, 44, (context) => {
-    polygon(context, '#15351e', [[17, 10], [7, 2], [9, 17], [0, 20], [13, 26], [8, 43], [19, 35], [30, 43], [25, 26], [38, 20], [27, 16], [31, 3], [21, 10]]);
-    rect(context, '#4d9a4e', 14, 11, 11, 25); rect(context, '#9ac75f', 17, 15, 5, 7); rect(context, '#f2d45d', 18, 18, 2, 2);
-    pixelLine(context, '#78c861', 2, [[15, 24], [6, 31], [3, 39]]); pixelLine(context, '#78c861', 2, [[24, 24], [32, 31], [35, 40]]); rect(context, '#e96d67', 10, 18, 3, 3);
+  createTexture(scene, 'enemy-plant', 40, 44, (context) => {
+    polygon(context, '#15351e', [[18, 10], [7, 2], [10, 15], [0, 18], [12, 25], [27, 25], [40, 18], [29, 15], [33, 3], [22, 10]]);
+    polygon(context, '#4d9a4e', [[14, 10], [20, 5], [27, 11], [28, 23], [23, 31], [15, 29], [11, 21]]);
+    polygon(context, '#8f4f54', [[12, 15], [20, 11], [28, 15], [25, 23], [20, 26], [14, 22]]);
+    polygon(context, '#241d28', [[14, 17], [26, 17], [23, 22], [17, 22]]); polygon(context, '#f1d06a', [[16, 17], [18, 21], [20, 17]]); polygon(context, '#f1d06a', [[21, 17], [23, 21], [25, 17]]);
+    pixelLine(context, '#78c861', 3, [[14, 25], [6, 30], [3, 39]]); pixelLine(context, '#78c861', 3, [[26, 25], [34, 30], [37, 39]]);
+    polygon(context, '#69b85a', [[8, 8], [1, 3], [5, 14]]); polygon(context, '#69b85a', [[31, 8], [38, 3], [35, 14]]);
+    pixelLine(context, '#3c793f', 3, [[18, 28], [14, 37], [7, 43]]); pixelLine(context, '#3c793f', 3, [[22, 28], [26, 37], [34, 43]]); pixelLine(context, '#3c793f', 2, [[20, 29], [20, 43]]);
   });
-  createTexture(scene, 'enemy-darkKnight', 36, 46, (context) => {
-    polygon(context, '#111522', [[9, 1], [27, 1], [33, 13], [28, 27], [34, 44], [21, 46], [18, 34], [13, 46], [2, 44], [8, 27], [3, 13]]);
-    polygon(context, '#3f4965', [[10, 4], [26, 4], [29, 14], [25, 27], [11, 27], [7, 14]]); rect(context, '#dc5575', 10, 13, 16, 3);
-    rect(context, '#20263b', 9, 28, 18, 13); pixelLine(context, '#b7bfd2', 3, [[30, 15], [33, 40]]);
-    polygon(context, '#66708d', [[11, 5], [18, 1], [25, 5], [27, 11], [9, 11]]); rect(context, '#ec6b83', 16, 15, 4, 3); rect(context, '#9da7ba', 13, 31, 10, 3);
+  createTexture(scene, 'enemy-darkKnight', 42, 46, (context) => {
+    polygon(context, '#111522', [[10, 1], [29, 1], [35, 10], [32, 24], [29, 28], [29, 43], [22, 46], [19, 34], [14, 46], [7, 43], [8, 27], [4, 13]]);
+    polygon(context, '#3f4965', [[11, 4], [28, 4], [31, 12], [28, 25], [11, 25], [7, 13]]); rect(context, '#dc5575', 11, 13, 17, 3);
+    polygon(context, '#66708d', [[12, 5], [20, 1], [27, 5], [29, 11], [10, 11]]); rect(context, '#ec6b83', 17, 15, 5, 3);
+    polygon(context, '#20263b', [[10, 26], [29, 26], [28, 37], [23, 35], [22, 45], [17, 45], [16, 35], [9, 38]]); rect(context, PALETTE.ink, 17, 34, 5, 11);
+    polygon(context, '#111522', [[4, 18], [12, 15], [13, 34], [4, 37], [0, 29]]); polygon(context, '#59647d', [[5, 20], [10, 18], [10, 31], [5, 33], [2, 28]]); rect(context, '#9da7ba', 4, 24, 7, 2);
+    pixelLine(context, PALETTE.ink, 5, [[32, 14], [34, 41]]); pixelLine(context, '#b7bfd2', 3, [[32, 13], [34, 39]]); polygon(context, '#d5d9df', [[29, 10], [35, 1], [38, 12]]);
   });
-  createTexture(scene, 'enemy-lizardman', 36, 43, (context) => {
-    polygon(context, '#18301c', [[8, 4], [25, 2], [31, 9], [27, 20], [31, 38], [23, 42], [18, 30], [12, 43], [5, 38], [10, 21], [4, 13]]);
-    rect(context, '#5d9d50', 9, 7, 17, 15); rect(context, '#d9e66c', 20, 11, 4, 3); polygon(context, '#52744a', [[9, 22], [27, 22], [25, 34], [11, 34]]);
-    pixelLine(context, '#c7b17a', 2, [[30, 3], [30, 41]]);
-    polygon(context, '#76bd5c', [[7, 8], [13, 1], [16, 8]]); rect(context, '#d5ef77', 10, 15, 3, 2); rect(context, '#7c4d35', 10, 26, 15, 3);
+  createTexture(scene, 'enemy-lizardman', 42, 43, (context) => {
+    polygon(context, '#18301c', [[8, 5], [24, 3], [33, 8], [39, 13], [31, 19], [28, 25], [31, 38], [24, 42], [19, 31], [13, 43], [6, 39], [10, 23], [4, 14]]);
+    polygon(context, '#5d9d50', [[10, 7], [23, 6], [30, 10], [35, 13], [28, 16], [26, 22], [11, 21], [7, 14]]);
+    polygon(context, '#52744a', [[10, 22], [27, 22], [26, 34], [20, 31], [14, 36], [8, 33]]); rect(context, '#7c4d35', 10, 26, 16, 3);
+    polygon(context, '#76bd5c', [[8, 8], [14, 1], [17, 8]]); rect(context, '#d9e66c', 23, 10, 4, 3); rect(context, PALETTE.ink, 25, 11, 2, 2);
+    polygon(context, '#4f863f', [[9, 24], [1, 27], [0, 33], [12, 31]]); pixelLine(context, '#7fbd5b', 2, [[9, 27], [2, 31]]);
+    pixelLine(context, '#c7b17a', 3, [[31, 4], [32, 40]]); polygon(context, PALETTE.stoneLight, [[27, 5], [31, 0], [35, 6]]); rect(context, '#704732', 29, 23, 7, 4);
+    pixelLine(context, PALETTE.bone, 2, [[14, 36], [9, 42]]); pixelLine(context, PALETTE.bone, 2, [[23, 35], [29, 41]]);
   });
-  createTexture(scene, 'enemy-witch', 38, 46, (context) => {
-    polygon(context, '#21162c', [[18, 0], [7, 15], [14, 16], [4, 43], [18, 38], [34, 44], [25, 16], [34, 15]]);
-    polygon(context, '#7e3c74', [[10, 29], [18, 18], [27, 29], [33, 42], [19, 38], [5, 42]]); rect(context, '#e1c9b2', 13, 13, 11, 10);
-    rect(context, '#f16b9c', 14, 17, 3, 2); rect(context, '#f16b9c', 21, 17, 3, 2);
-    rect(context, '#c78be0', 4, 37, 5, 3); rect(context, '#6a48a3', 28, 35, 4, 5); polygon(context, '#b49ae6', [[17, 27], [20, 22], [23, 27], [20, 31]]);
+  createTexture(scene, 'enemy-witch', 44, 46, (context) => {
+    polygon(context, '#21162c', [[19, 0], [8, 14], [15, 16], [7, 43], [20, 38], [35, 44], [27, 16], [36, 15]]);
+    polygon(context, '#7e3c74', [[11, 29], [20, 18], [29, 29], [35, 42], [20, 38], [6, 42]]); rect(context, '#e1c9b2', 14, 13, 11, 10);
+    rect(context, '#f16b9c', 15, 17, 3, 2); rect(context, '#f16b9c', 22, 17, 3, 2);
+    pixelLine(context, '#e1c9b2', 3, [[15, 26], [8, 31]]); pixelLine(context, '#e1c9b2', 3, [[26, 26], [32, 31]]); rect(context, '#f0c6ad', 5, 29, 5, 4); rect(context, '#f0c6ad', 31, 29, 5, 4);
+    polygon(context, '#b49ae6', [[18, 27], [21, 22], [24, 27], [21, 31]]);
+    pixelLine(context, PALETTE.ink, 5, [[40, 7], [38, 45]]); pixelLine(context, '#6d4938', 3, [[40, 8], [38, 45]]); polygon(context, '#c78be0', [[35, 8], [40, 1], [44, 8], [40, 13]]);
+    rect(context, '#e5aff5', 38, 5, 4, 4);
   });
 
   createTexture(scene, 'boss-minotaur', 70, 78, (context) => {

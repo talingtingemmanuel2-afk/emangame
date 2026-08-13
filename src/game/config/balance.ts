@@ -1,7 +1,9 @@
+import type { BossKind } from '../types';
+
 export const WORLD_SIZE = 4096;
 
 export const PLAYER = {
-  maxHp: 120,
+  maxHp: 140,
   speed: 205,
   dashSpeed: 640,
   dashDuration: 210,
@@ -18,9 +20,87 @@ export const COMBAT = {
   projectileSpeed: 520,
   criticalChance: 0.08,
   criticalMultiplier: 1.85,
-  maxEnemies: 155,
+  maxEnemies: 110,
   maxProjectiles: 96,
   maxGems: 180,
+} as const;
+
+export const ENEMY_BALANCE = {
+  hpPerWave: 0.09,
+  damagePerWave: 0.02,
+  xpPerWave: 0.045,
+  eliteFirstWave: 6,
+  eliteBaseChance: 0.014,
+  eliteChancePerWave: 0.005,
+  eliteMaxChance: 0.15,
+  eliteHpMultiplier: 1.9,
+  armoredHpMultiplier: 2.45,
+  eliteDamageMultiplier: 1.2,
+  eliteXpMultiplier: 2.3,
+  separationRadius: 34,
+  separationStrength: 0.48,
+  maxRangedAttackers: 6,
+  rangedAttackLeaseMs: 1250,
+  maxEnemyProjectiles: 96,
+  maxDangerWarnings: 24,
+  contactCooldownMs: 760,
+} as const;
+
+export const SPAWN_BALANCE = {
+  firstSpawnDelayMs: 850,
+  minimumDistanceFromPlayer: 420,
+  bossSummonMinimumDistance: 250,
+  stopSpawningBeforeBossSeconds: 3,
+} as const;
+
+export interface WaveTuning {
+  spawnIntervalMs: number;
+  maxActiveEnemies: number;
+  maxRangedAttackers: number;
+  bossAtSeconds: number;
+}
+
+export const WAVE_TUNING: Record<number, WaveTuning> = {
+  1: { spawnIntervalMs: 1200, maxActiveEnemies: 38, maxRangedAttackers: 3, bossAtSeconds: 54 },
+  2: { spawnIntervalMs: 1100, maxActiveEnemies: 44, maxRangedAttackers: 3, bossAtSeconds: 55 },
+  3: { spawnIntervalMs: 1000, maxActiveEnemies: 50, maxRangedAttackers: 4, bossAtSeconds: 56 },
+  4: { spawnIntervalMs: 920, maxActiveEnemies: 58, maxRangedAttackers: 4, bossAtSeconds: 57 },
+  5: { spawnIntervalMs: 0, maxActiveEnemies: 0, maxRangedAttackers: 4, bossAtSeconds: 4 },
+  6: { spawnIntervalMs: 1050, maxActiveEnemies: 52, maxRangedAttackers: 4, bossAtSeconds: 58 },
+  7: { spawnIntervalMs: 850, maxActiveEnemies: 65, maxRangedAttackers: 5, bossAtSeconds: 59 },
+  8: { spawnIntervalMs: 760, maxActiveEnemies: 75, maxRangedAttackers: 5, bossAtSeconds: 60 },
+  9: { spawnIntervalMs: 690, maxActiveEnemies: 85, maxRangedAttackers: 6, bossAtSeconds: 60 },
+  10: { spawnIntervalMs: 0, maxActiveEnemies: 0, maxRangedAttackers: 6, bossAtSeconds: 4 },
+};
+
+export interface BossTuning {
+  hp: number;
+  damage: number;
+  hitboxRadius: number;
+  moveSpeed: number;
+  cadence: number;
+  enragedCadence: number;
+}
+
+export const BOSS_BALANCE: Record<BossKind, BossTuning> = {
+  golem:        { hp: 760, damage: 14, hitboxRadius: 40, moveSpeed: 58, cadence: 3100, enragedCadence: 2500 },
+  vampire:      { hp: 720, damage: 14, hitboxRadius: 30, moveSpeed: 88, cadence: 2800, enragedCadence: 2200 },
+  rooster:      { hp: 1800, damage: 15, hitboxRadius: 34, moveSpeed: 98, cadence: 2500, enragedCadence: 1900 },
+  troll:        { hp: 1700, damage: 17, hitboxRadius: 42, moveSpeed: 48, cadence: 3400, enragedCadence: 2600 },
+  werewolf:     { hp: 1350, damage: 14, hitboxRadius: 38, moveSpeed: 118, cadence: 2500, enragedCadence: 1950 },
+  minotaur:     { hp: 2000, damage: 16, hitboxRadius: 40, moveSpeed: 62, cadence: 3000, enragedCadence: 2350 },
+  wyvern:       { hp: 2500, damage: 15, hitboxRadius: 40, moveSpeed: 88, cadence: 3200, enragedCadence: 2500 },
+  ancientBeast: { hp: 6000, damage: 20, hitboxRadius: 52, moveSpeed: 54, cadence: 3500, enragedCadence: 2800 },
+  dragon:       { hp: 12_000, damage: 22, hitboxRadius: 58, moveSpeed: 70, cadence: 3400, enragedCadence: 2450 },
+};
+
+export const BOSS_SCALING = {
+  hpPerWave: 0.09,
+  damagePerWave: 0.02,
+  enragedMoveSpeedMultiplier: 1.08,
+  phaseBurstMoveSpeedMultiplier: 1.12,
+  infernoCooldownMs: 18_000,
+  infernoRecoveryMs: 6200,
 } as const;
 
 // Offensive skill cadence is intentionally per-ability. `base` is the level-1
@@ -40,14 +120,14 @@ export const ABILITY_COOLDOWNS = {
 
 export const WAVES = {
   total: 10,
-  duration: 72,
-  bossAtSeconds: 58,
-  restDuration: 4,
+  bossAtSeconds: 54,
+  restDuration: 5,
+  majorBossRestDuration: 7,
 } as const;
 
 export const XP = {
-  baseRequirement: 22,
-  growth: 1.18,
+  baseRequirement: 70,
+  growth: 0.88,
 } as const;
 
 export const COLORS = {

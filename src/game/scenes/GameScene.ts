@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { AudioManager, type MusicKey, type SfxKey } from '../audio/AudioManager';
 import { AbilitySystem, type Foe } from '../abilities/AbilitySystem';
 import { getWaveEnemyWeights } from '../content/definitions';
-import { COMBAT, WAVES, WORLD_SIZE } from '../config/balance';
+import { COMBAT, ENEMY_BALANCE, SPAWN_BALANCE, WAVE_TUNING, WAVES, WORLD_SIZE } from '../config/balance';
 import { SaveManager } from '../core/SaveManager';
 import { BossActor, type BossHost } from '../entities/BossActor';
 import { EnemyActor, type EnemyHost } from '../entities/EnemyActor';
@@ -41,7 +41,7 @@ interface PickupDebugState {
   enemies: number;
   enemyKinds: EnemyKind[];
   bosses: number;
-  boss: { kind: BossKind; phase: number; hp: number; maxHp: number; lastAttack: string; attacksUsed: string[]; specialState: string } | null;
+  boss: { kind: BossKind; x: number; y: number; distanceToPlayer: number; phase: number; hp: number; maxHp: number; lastAttack: string; attacksUsed: string[]; specialState: string } | null;
   hazards: { total: number; player: number; enemy: number };
   projectiles: { player: number; enemy: number };
   level: number;
@@ -49,6 +49,10 @@ interface PickupDebugState {
   abilities: string[];
   fps: number;
   paused: boolean;
+  waveElapsed: number;
+  waveEnemyCap: number;
+  rangedAttackers: number;
+  activeWarnings: number;
 }
 
 declare global {
@@ -90,6 +94,8 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
   private nextDebugWriteAt = 0;
   private corruptionOverlay: Phaser.GameObjects.Rectangle | null = null;
   private activeWarnings = 0;
+  private readonly rangedAttackLeases = new Map<number, number>();
+  private readonly contactDamageReadyAt = new Map<string, number>();
 
   constructor() {
     super('GameScene');
@@ -108,6 +114,8 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
     this.lootSystem = new LootSystem(this, this);
     this.abilities = new AbilitySystem(this, this);
     this.hud = new HUD(this);
+    this.onPlayerHealthChanged(this.player.stats.hp, this.player.stats.maxHp);
+    this.onExperienceChanged(this.xpSystem.level, this.xpSystem.xp, this.xpSystem.required);
     this.overlays = new OverlayManager(this, this, this.audio);
     this.setupPhysics();
     this.setupCamera();
@@ -160,6 +168,13 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
 
   damagePlayer(amount: number): void {
     this.player.takeDamage(amount, this.time.now);
+  }
+
+  private damagePlayerFromContact(source: string, amount: number): void {
+    const time = this.time.now;
+    if ((this.contactDamageReadyAt.get(source) ?? 0) > time) return;
+    this.contactDamageReadyAt.set(source, time + ENEMY_BALANCE.contactCooldownMs);
+    this.damagePlayer(amount);
   }
 
   applyPlayerSlow(multiplier: number, duration: number): void {
@@ -218,11 +233,56 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
   }
 
   spawnEnemy(kind: EnemyKind, x?: number, y?: number, forcedElite = false): EnemyActor | null {
-    if (this.enemies.countActive(true) >= COMBAT.maxEnemies) return null;
+    const isSummon = x != null && y != null;
+    const waveCap = WAVE_TUNING[this.wave]?.maxActiveEnemies ?? COMBAT.maxEnemies;
+    const activeCap = isSummon ? Math.min(COMBAT.maxEnemies, Math.max(8, waveCap + 8)) : waveCap;
+    if (this.enemies.countActive(true) >= activeCap) return null;
     const enemy = this.enemies.get(-100, -100) as EnemyActor | null;
     if (!enemy) return null;
-    const position = x == null || y == null ? this.offscreenSpawnPoint() : new Phaser.Math.Vector2(x, y);
+    const position = isSummon ? new Phaser.Math.Vector2(x, y) : this.offscreenSpawnPoint();
+    const minimumDistance = isSummon ? SPAWN_BALANCE.bossSummonMinimumDistance : SPAWN_BALANCE.minimumDistanceFromPlayer;
+    const away = position.clone().subtract(new Phaser.Math.Vector2(this.player.x, this.player.y));
+    if (away.lengthSq() < minimumDistance * minimumDistance) {
+      if (away.lengthSq() < 1) away.setToPolar(Phaser.Math.FloatBetween(0, Math.PI * 2), minimumDistance);
+      else away.setLength(minimumDistance);
+      position.set(
+        Phaser.Math.Clamp(this.player.x + away.x, 45, WORLD_SIZE - 45),
+        Phaser.Math.Clamp(this.player.y + away.y, 45, WORLD_SIZE - 45),
+      );
+    }
     return enemy.spawn(this, kind, position.x, position.y, this.wave, forcedElite);
+  }
+
+  requestRangedAttack(enemy: EnemyActor): boolean {
+    const time = this.time.now;
+    for (const [enemyId, expiresAt] of this.rangedAttackLeases) {
+      if (expiresAt <= time) this.rangedAttackLeases.delete(enemyId);
+    }
+    const rangedLimit = WAVE_TUNING[this.wave]?.maxRangedAttackers ?? ENEMY_BALANCE.maxRangedAttackers;
+    if (this.rangedAttackLeases.has(enemy.enemyId) || this.rangedAttackLeases.size >= rangedLimit) return false;
+    this.rangedAttackLeases.set(enemy.enemyId, time + ENEMY_BALANCE.rangedAttackLeaseMs);
+    return true;
+  }
+
+  getEnemySeparation(enemy: EnemyActor): Phaser.Math.Vector2 {
+    const push = new Phaser.Math.Vector2();
+    let neighbors = 0;
+    const radiusSq = ENEMY_BALANCE.separationRadius * ENEMY_BALANCE.separationRadius;
+    for (const object of this.enemies.getChildren()) {
+      const other = object as EnemyActor;
+      if (!other.active || other === enemy) continue;
+      const dx = enemy.x - other.x;
+      const dy = enemy.y - other.y;
+      const distanceSq = dx * dx + dy * dy;
+      if (distanceSq <= 0 || distanceSq >= radiusSq) continue;
+      const strength = 1 - Math.sqrt(distanceSq) / ENEMY_BALANCE.separationRadius;
+      push.x += dx * strength;
+      push.y += dy * strength;
+      neighbors += 1;
+      if (neighbors >= 8) break;
+    }
+    if (push.lengthSq() > 1) push.normalize();
+    return push;
   }
 
   enemyDied(enemy: EnemyActor): void {
@@ -475,7 +535,7 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
   }
 
   createDangerCircle(x: number, y: number, radius: number, delay: number, damage: number, color = 0xff7657): void {
-    if (this.activeWarnings >= 28) return;
+    if (this.activeWarnings >= ENEMY_BALANCE.maxDangerWarnings) return;
     this.activeWarnings += 1;
     const warning = this.add.circle(x, y, radius, color, 0.11).setStrokeStyle(4, color, 0.85).setDepth(7000);
     this.tweens.add({ targets: warning, scale: 0.6, alpha: 0.52, duration: delay, ease: 'Sine.in', onComplete: () => {
@@ -490,7 +550,7 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
   }
 
   createDangerLine(x: number, y: number, angle: number, length: number, width: number, delay: number, damage: number, color = 0xff7657): void {
-    if (this.activeWarnings >= 28) return;
+    if (this.activeWarnings >= ENEMY_BALANCE.maxDangerWarnings) return;
     this.activeWarnings += 1;
     const centerX = x + Math.cos(angle) * length * 0.5;
     const centerY = y + Math.sin(angle) * length * 0.5;
@@ -507,7 +567,7 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
   }
 
   createDangerRing(x: number, y: number, radius: number, thickness: number, delay: number, damage: number, color = 0xe0a45f): void {
-    if (this.activeWarnings >= 28) return;
+    if (this.activeWarnings >= ENEMY_BALANCE.maxDangerWarnings) return;
     this.activeWarnings += 1;
     const warning = this.add.circle(x, y, radius, color, 0.035).setStrokeStyle(thickness, color, 0.76).setDepth(7050);
     this.tweens.add({ targets: warning, alpha: 0.65, scale: { from: 0.82, to: 1 }, duration: delay, ease: 'Sine.in', onComplete: () => {
@@ -521,7 +581,7 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
   }
 
   createDangerCone(x: number, y: number, angle: number, range: number, spread: number, delay: number, damage: number, color = 0xc89b66): void {
-    if (this.activeWarnings >= 28) return;
+    if (this.activeWarnings >= ENEMY_BALANCE.maxDangerWarnings) return;
     this.activeWarnings += 1;
     const graphics = this.add.graphics().setDepth(7150);
     graphics.fillStyle(color, 0.12).slice(x, y, range, angle - spread / 2, angle + spread / 2, false).fillPath();
@@ -575,14 +635,14 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
     const safeZones: Phaser.GameObjects.Arc[] = [];
     for (let i = 0; i < 3; i += 1) {
       const angle = (Math.PI * 2 * i) / 3 + Math.random() * 0.3;
-      const radius = 170;
-      safeZones.push(this.add.circle(this.player.x + Math.cos(angle) * radius, this.player.y + Math.sin(angle) * radius, 72, 0x64e9c8, 0.13).setStrokeStyle(4, 0xb8ffe8, 0.9).setDepth(9000));
+      const radius = 165;
+      safeZones.push(this.add.circle(this.player.x + Math.cos(angle) * radius, this.player.y + Math.sin(angle) * radius, 82, 0x64e9c8, 0.13).setStrokeStyle(4, 0xb8ffe8, 0.9).setDepth(9000));
     }
     this.cameras.main.flash(300, 75, 18, 10);
     const darkness = this.add.rectangle(0, 0, this.scale.width, this.scale.height, 0x2b0704, 0.38).setOrigin(0).setScrollFactor(0).setDepth(24_000);
     this.time.delayedCall(3400, () => {
       const safe = safeZones.some((zone) => Phaser.Math.Distance.Between(zone.x, zone.y, this.player.x, this.player.y) <= zone.radius);
-      if (!safe) this.damagePlayer(boss.damage * 2.4);
+      if (!safe) this.damagePlayer(boss.damage * 1.45);
       for (let i = 0; i < 28; i += 1) {
         const x = this.player.x + Phaser.Math.Between(-420, 420);
         const y = this.player.y + Phaser.Math.Between(-280, 280);
@@ -649,20 +709,28 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
     this.currentBoss = null;
     this.lastMinibossKind = null;
     this.activeWarnings = 0;
+    this.rangedAttackLeases.clear();
+    this.contactDamageReadyAt.clear();
   }
 
   private createPools(): void {
     this.enemies = this.physics.add.group({ classType: EnemyActor, maxSize: COMBAT.maxEnemies, runChildUpdate: false });
     this.bosses = this.physics.add.group({ classType: BossActor, maxSize: 2, runChildUpdate: false });
     this.playerProjectiles = this.physics.add.group({ classType: Projectile, maxSize: COMBAT.maxProjectiles, runChildUpdate: false });
-    this.enemyProjectiles = this.physics.add.group({ classType: Projectile, maxSize: 140, runChildUpdate: false });
+    this.enemyProjectiles = this.physics.add.group({ classType: Projectile, maxSize: ENEMY_BALANCE.maxEnemyProjectiles, runChildUpdate: false });
   }
 
   private setupPhysics(): void {
     this.physics.add.collider(this.player, this.worldData.obstacles);
     this.physics.add.collider(this.player, this.worldData.breakables);
-    this.physics.add.collider(this.player, this.enemies, (_player, object) => this.damagePlayer((object as EnemyActor).damage));
-    this.physics.add.collider(this.player, this.bosses, (_player, object) => this.damagePlayer((object as BossActor).damage));
+    this.physics.add.collider(this.player, this.enemies, (_player, object) => {
+      const enemy = object as EnemyActor;
+      this.damagePlayerFromContact(`enemy-${enemy.enemyId}`, enemy.damage);
+    });
+    this.physics.add.collider(this.player, this.bosses, (_player, object) => {
+      const boss = object as BossActor;
+      this.damagePlayerFromContact(`boss-${boss.generation}`, boss.damage);
+    });
     this.physics.add.collider(this.bosses, this.worldData.obstacles, (bossObject) => (bossObject as BossActor).onObstacleCollision());
     this.physics.add.collider(this.bosses, this.worldData.breakables, (bossObject) => (bossObject as BossActor).onObstacleCollision());
     this.physics.add.overlap(this.player, this.enemyProjectiles, (_player, object) => {
@@ -713,7 +781,7 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
     this.wave = wave;
     this.run.wave = wave;
     this.waveStartedAt = this.time.now;
-    this.nextSpawnAt = this.time.now + 700;
+    this.nextSpawnAt = this.time.now + SPAWN_BALANCE.firstSpawnDelayMs;
     this.minibossSpawned = false;
     this.minibossDefeated = false;
     this.transitionAt = 0;
@@ -725,13 +793,11 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
 
   private updateWave(time: number): void {
     const elapsed = (time - this.waveStartedAt) / 1000;
-    const bossThreshold = this.wave === 5 || this.wave === 10 ? 4 : WAVES.bossAtSeconds + Math.min(10, this.wave * 1.2);
-    if (this.wave !== 5 && this.wave !== 10 && !this.minibossSpawned && elapsed < bossThreshold && time >= this.nextSpawnAt) {
+    const tuning = WAVE_TUNING[this.wave];
+    const bossThreshold = tuning?.bossAtSeconds ?? WAVES.bossAtSeconds;
+    if (tuning.spawnIntervalMs > 0 && !this.minibossSpawned && elapsed < bossThreshold - SPAWN_BALANCE.stopSpawningBeforeBossSeconds && time >= this.nextSpawnAt) {
       this.spawnWaveEnemy();
-      const interval = Math.max(260, 920 - this.wave * 55);
-      const burst = this.wave >= 8 ? 3 : this.wave >= 4 ? 2 : 1;
-      for (let i = 1; i < burst; i += 1) this.spawnWaveEnemy();
-      this.nextSpawnAt = time + interval;
+      this.nextSpawnAt = time + tuning.spawnIntervalMs;
     }
     if (!this.minibossSpawned && elapsed >= bossThreshold) {
       this.minibossSpawned = true;
@@ -757,14 +823,25 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
   private offscreenSpawnPoint(extra = 180): Phaser.Math.Vector2 {
     const camera = this.cameras.main;
     const view = camera.worldView;
-    const side = this.spawnSerial++ % 4;
-    let x = this.player.x;
-    let y = this.player.y;
-    if (side === 0) { x = Phaser.Math.Between(view.left - extra - 110, view.left - extra); y = Phaser.Math.Between(view.top - 100, view.bottom + 100); }
-    else if (side === 1) { x = Phaser.Math.Between(view.right + extra, view.right + extra + 110); y = Phaser.Math.Between(view.top - 100, view.bottom + 100); }
-    else if (side === 2) { x = Phaser.Math.Between(view.left - 100, view.right + 100); y = Phaser.Math.Between(view.top - extra - 110, view.top - extra); }
-    else { x = Phaser.Math.Between(view.left - 100, view.right + 100); y = Phaser.Math.Between(view.bottom + extra, view.bottom + extra + 110); }
-    return new Phaser.Math.Vector2(Phaser.Math.Clamp(x, 45, WORLD_SIZE - 45), Phaser.Math.Clamp(y, 45, WORLD_SIZE - 45));
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      const side = this.spawnSerial++ % 4;
+      let x = this.player.x;
+      let y = this.player.y;
+      if (side === 0) { x = Phaser.Math.Between(view.left - extra - 110, view.left - extra); y = Phaser.Math.Between(view.top - 100, view.bottom + 100); }
+      else if (side === 1) { x = Phaser.Math.Between(view.right + extra, view.right + extra + 110); y = Phaser.Math.Between(view.top - 100, view.bottom + 100); }
+      else if (side === 2) { x = Phaser.Math.Between(view.left - 100, view.right + 100); y = Phaser.Math.Between(view.top - extra - 110, view.top - extra); }
+      else { x = Phaser.Math.Between(view.left - 100, view.right + 100); y = Phaser.Math.Between(view.bottom + extra, view.bottom + extra + 110); }
+      const candidate = new Phaser.Math.Vector2(Phaser.Math.Clamp(x, 45, WORLD_SIZE - 45), Phaser.Math.Clamp(y, 45, WORLD_SIZE - 45));
+      if (candidate.distance(this.player) >= SPAWN_BALANCE.minimumDistanceFromPlayer) return candidate;
+    }
+    const radius = SPAWN_BALANCE.minimumDistanceFromPlayer + 100;
+    const fallbackCandidates = [
+      new Phaser.Math.Vector2(Phaser.Math.Clamp(this.player.x + radius, 45, WORLD_SIZE - 45), this.player.y),
+      new Phaser.Math.Vector2(Phaser.Math.Clamp(this.player.x - radius, 45, WORLD_SIZE - 45), this.player.y),
+      new Phaser.Math.Vector2(this.player.x, Phaser.Math.Clamp(this.player.y + radius, 45, WORLD_SIZE - 45)),
+      new Phaser.Math.Vector2(this.player.x, Phaser.Math.Clamp(this.player.y - radius, 45, WORLD_SIZE - 45)),
+    ];
+    return fallbackCandidates.sort((a, b) => b.distanceSq(this.player) - a.distanceSq(this.player))[0];
   }
 
   private buildUpgradeChoices(): UpgradeChoice[] {
@@ -795,7 +872,7 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
     this.overlays.showUpgrade(powers.slice(0, 3), (choice) => {
       choice.apply();
       this.minibossDefeated = true;
-      this.transitionAt = this.time.now + WAVES.restDuration * 1000;
+      this.transitionAt = this.time.now + WAVES.majorBossRestDuration * 1000;
       this.resumeSimulation();
       this.audio.crossfade('boss', 700);
     }, 'ANCIENT POWER', 'Choose one relic from the fallen beast');
@@ -846,7 +923,7 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
           this.areaDamage(hazard.x, hazard.y, hazard.radius * 1.2, hazard.damage * 4, 'blackHole', { tint: 0xb387ff });
           this.burst(hazard.x, hazard.y, 0xb387ff, 26, 220);
         }
-        hazard.destroy(true);
+        this.destroyHazard(hazard);
         this.hazards.splice(i, 1);
         continue;
       }
@@ -888,9 +965,15 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
     const limit = 42;
     if (this.hazards.length >= limit) {
       const oldest = this.hazards.shift();
-      oldest?.destroy(true);
+      if (oldest) this.destroyHazard(oldest);
     }
     this.hazards.push(hazard);
+  }
+
+  private destroyHazard(hazard: Hazard): void {
+    this.tweens.killTweensOf(hazard);
+    this.tweens.killTweensOf(hazard.list);
+    hazard.destroy(true);
   }
 
   private togglePause(): void {
@@ -961,7 +1044,18 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
       enemies: this.enemies.countActive(true),
       enemyKinds: [...new Set(this.enemies.getChildren().filter((object) => (object as EnemyActor).active).map((object) => (object as EnemyActor).kind))],
       bosses: this.bosses.countActive(true),
-      boss: this.currentBoss?.active ? { kind: this.currentBoss.kind, phase: this.currentBoss.phase, hp: this.currentBoss.hp, maxHp: this.currentBoss.maxHp, lastAttack: this.currentBoss.lastAttack, attacksUsed: [...this.currentBoss.attacksUsed], specialState: this.currentBoss.specialState } : null,
+      boss: this.currentBoss?.active ? {
+        kind: this.currentBoss.kind,
+        x: Math.round(this.currentBoss.x),
+        y: Math.round(this.currentBoss.y),
+        distanceToPlayer: Math.round(Phaser.Math.Distance.Between(this.player.x, this.player.y, this.currentBoss.x, this.currentBoss.y)),
+        phase: this.currentBoss.phase,
+        hp: this.currentBoss.hp,
+        maxHp: this.currentBoss.maxHp,
+        lastAttack: this.currentBoss.lastAttack,
+        attacksUsed: [...this.currentBoss.attacksUsed],
+        specialState: this.currentBoss.specialState,
+      } : null,
       hazards: {
         total: this.hazards.length,
         player: this.hazards.filter((hazard) => hazard.owner === 'player').length,
@@ -973,6 +1067,10 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
       abilities: this.abilities.getOwnedStates(this.time.now).map((state) => `${state.id}:${state.level}`),
       fps: Math.round(this.game.loop.actualFps),
       paused: this.isSimulationPaused,
+      waveElapsed: Math.max(0, (this.time.now - this.waveStartedAt) / 1000),
+      waveEnemyCap: WAVE_TUNING[this.wave]?.maxActiveEnemies ?? COMBAT.maxEnemies,
+      rangedAttackers: this.rangedAttackLeases.size,
+      activeWarnings: this.activeWarnings,
     };
   }
 
@@ -980,7 +1078,7 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
     this.input.keyboard?.off('keydown-ESC', this.togglePause, this);
     this.overlays?.clear();
     this.hud?.destroy();
-    this.hazards.forEach((hazard) => hazard.destroy(true));
+    this.hazards.forEach((hazard) => this.destroyHazard(hazard));
     this.hazards = [];
     this.corruptionOverlay?.destroy();
     this.corruptionOverlay = null;
@@ -1006,8 +1104,8 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
       const kinds: EnemyKind[] = ['slime', 'goblin', 'bat', 'skeleton', 'wolf', 'spider', 'zombie', 'mushroom', 'plant', 'darkKnight', 'lizardman', 'witch'];
       for (let i = 0; i < 120; i += 1) this.spawnEnemy(kinds[i % kinds.length]);
     });
-    this.input.keyboard?.on('keydown-F10', () => !this.currentBoss && this.startWave(5));
-    this.input.keyboard?.on('keydown-F11', () => !this.currentBoss && this.startWave(10));
+    this.input.keyboard?.on('keydown-F10', () => this.debugStartWave(5));
+    this.input.keyboard?.on('keydown-F11', () => this.debugStartWave(10));
     this.input.keyboard?.on('keydown-R', () => !this.currentBoss && this.spawnBoss('rooster'));
     this.input.keyboard?.on('keydown-T', () => !this.currentBoss && this.spawnBoss('troll'));
     this.input.keyboard?.on('keydown-M', () => !this.currentBoss && this.spawnBoss('minotaur'));
@@ -1019,18 +1117,36 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
       this.player.heal(this.player.stats.maxHp);
       this.player.grantInvulnerability(30_000, this.time.now);
     });
-    this.input.keyboard?.on('keydown-G', () => {
-      for (const object of this.enemies.getChildren()) (object as EnemyActor).retire();
-      if (this.currentBoss?.active) this.currentBoss.retire();
-      this.currentBoss = null;
-      this.hazards.forEach((hazard) => hazard.destroy(true));
-      this.hazards = [];
-      this.startWave(3);
-    });
+    this.input.keyboard?.on('keydown-G', () => this.debugStartWave(3));
+    this.input.keyboard?.on('keydown-N', () => this.debugStartWave(Math.min(WAVES.total, this.wave + 1)));
     this.input.keyboard?.on('keydown-B', () => !this.currentBoss && this.spawnBoss(this.bossForWave(this.wave)));
+    this.input.keyboard?.on('keydown-K', () => {
+      const targets: Partial<Record<AbilityId, number>> = { bolt: 5, orb: 3, meteor: 3, poison: 3, shuriken: 2, lightning: 2, fireRing: 2 };
+      for (const [id, target] of Object.entries(targets) as Array<[AbilityId, number]>) {
+        while (this.abilities.getLevel(id) < target) this.abilities.upgrade(id);
+      }
+    });
+    this.input.keyboard?.on('keydown-J', () => {
+      if (!this.currentBoss?.active) return;
+      this.player.setPosition(
+        Phaser.Math.Clamp(this.currentBoss.x - 230, 32, WORLD_SIZE - 32),
+        Phaser.Math.Clamp(this.currentBoss.y, 32, WORLD_SIZE - 32),
+      );
+      this.cameras.main.centerOn(this.player.x, this.player.y);
+    });
     this.input.keyboard?.on('keydown-U', () => {
       const ids: AbilityId[] = ['bolt', 'orb', 'meteor', 'poison', 'shuriken', 'laser', 'arrow', 'lightning', 'fireRing', 'iceStorm', 'blackHole'];
       for (const id of ids) while (this.abilities.getLevel(id) < 8) this.abilities.upgrade(id);
     });
+  }
+
+  private debugStartWave(wave: number): void {
+    if (!import.meta.env.DEV) return;
+    for (const object of this.enemies.getChildren()) (object as EnemyActor).retire();
+    if (this.currentBoss?.active) this.currentBoss.retire();
+    this.currentBoss = null;
+    this.hazards.forEach((hazard) => this.destroyHazard(hazard));
+    this.hazards = [];
+    this.startWave(Phaser.Math.Clamp(wave, 1, WAVES.total));
   }
 }
