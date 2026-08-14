@@ -28,12 +28,15 @@ export const COMBAT = {
 } as const;
 
 export const ENEMY_BALANCE = {
-  hpPerWave: 0.105,
-  damagePerWave: 0.024,
+  hpPerWave: 0.085,
+  damagePerWave: 0.028,
+  speedPerWave: 0.018,
+  attackCooldownPerWave: 0.022,
+  minimumAttackCooldownMultiplier: 0.80,
   xpPerWave: 0.045,
-  eliteFirstWave: 6,
-  eliteBaseChance: 0.018,
-  eliteChancePerWave: 0.007,
+  eliteFirstWave: 2,
+  eliteBaseChance: 0,
+  eliteChancePerWave: 0.018,
   eliteMaxChance: 0.19,
   eliteHpMultiplier: 1.9,
   armoredHpMultiplier: 2.45,
@@ -63,15 +66,15 @@ export interface WaveTuning {
 }
 
 export const WAVE_TUNING: Record<number, WaveTuning> = {
-  1: { spawnIntervalMs: 1200, maxActiveEnemies: 38, maxRangedAttackers: 3, bossAtSeconds: 54 },
-  2: { spawnIntervalMs: 1100, maxActiveEnemies: 44, maxRangedAttackers: 3, bossAtSeconds: 55 },
-  3: { spawnIntervalMs: 1000, maxActiveEnemies: 50, maxRangedAttackers: 4, bossAtSeconds: 56 },
-  4: { spawnIntervalMs: 920, maxActiveEnemies: 58, maxRangedAttackers: 4, bossAtSeconds: 57 },
+  1: { spawnIntervalMs: 1260, maxActiveEnemies: 34, maxRangedAttackers: 2, bossAtSeconds: 52 },
+  2: { spawnIntervalMs: 1140, maxActiveEnemies: 42, maxRangedAttackers: 3, bossAtSeconds: 54 },
+  3: { spawnIntervalMs: 1020, maxActiveEnemies: 50, maxRangedAttackers: 4, bossAtSeconds: 56 },
+  4: { spawnIntervalMs: 900, maxActiveEnemies: 59, maxRangedAttackers: 4, bossAtSeconds: 58 },
   5: { spawnIntervalMs: 0, maxActiveEnemies: 0, maxRangedAttackers: 4, bossAtSeconds: 4 },
-  6: { spawnIntervalMs: 940, maxActiveEnemies: 58, maxRangedAttackers: 5, bossAtSeconds: 58 },
-  7: { spawnIntervalMs: 760, maxActiveEnemies: 72, maxRangedAttackers: 5, bossAtSeconds: 59 },
-  8: { spawnIntervalMs: 660, maxActiveEnemies: 84, maxRangedAttackers: 6, bossAtSeconds: 60 },
-  9: { spawnIntervalMs: 590, maxActiveEnemies: 96, maxRangedAttackers: 7, bossAtSeconds: 60 },
+  6: { spawnIntervalMs: 930, maxActiveEnemies: 60, maxRangedAttackers: 5, bossAtSeconds: 58 },
+  7: { spawnIntervalMs: 790, maxActiveEnemies: 70, maxRangedAttackers: 5, bossAtSeconds: 59 },
+  8: { spawnIntervalMs: 690, maxActiveEnemies: 82, maxRangedAttackers: 6, bossAtSeconds: 60 },
+  9: { spawnIntervalMs: 610, maxActiveEnemies: 94, maxRangedAttackers: 7, bossAtSeconds: 61 },
   10: { spawnIntervalMs: 0, maxActiveEnemies: 0, maxRangedAttackers: 6, bossAtSeconds: 4 },
 };
 

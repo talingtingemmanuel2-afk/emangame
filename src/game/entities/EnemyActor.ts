@@ -54,6 +54,7 @@ export class EnemyActor extends Phaser.Physics.Arcade.Sprite {
   private actionEndsAt = 0;
   private baseScale = 1;
   private phaseSeed = Math.random() * Math.PI * 2;
+  private attackCooldownMultiplier = 1;
   private revived = false;
   private generation = 0;
   private readonly shadow: Phaser.GameObjects.Ellipse;
@@ -75,7 +76,11 @@ export class EnemyActor extends Phaser.Physics.Arcade.Sprite {
     this.scene.tweens.killTweensOf(this);
     this.kind = kind;
     this.displayName = definition.name;
-    this.baseSpeed = definition.speed;
+    this.baseSpeed = definition.speed * (1 + waveIndex * ENEMY_BALANCE.speedPerWave);
+    this.attackCooldownMultiplier = Math.max(
+      ENEMY_BALANCE.minimumAttackCooldownMultiplier,
+      1 - waveIndex * ENEMY_BALANCE.attackCooldownPerWave,
+    );
     this.maxHp = Math.round(definition.hp * hpScale);
     this.damage = Math.round(definition.damage * (1 + waveIndex * ENEMY_BALANCE.damagePerWave));
     this.xpValue = Math.round(definition.xp * (1 + waveIndex * ENEMY_BALANCE.xpPerWave));
@@ -137,7 +142,7 @@ export class EnemyActor extends Phaser.Physics.Arcade.Sprite {
         const flank = Math.sin(time * 0.0025 + this.phaseSeed) * 0.42;
         this.setVelocity((direction.x - direction.y * flank) * speed, (direction.y + direction.x * flank) * speed);
         if (time >= this.nextActionAt && distance < 90) {
-          this.nextActionAt = time + 1150;
+          this.nextActionAt = time + this.cooldown(1150);
           this.setAngle(direction.x < 0 ? -14 : 14);
           this.scene.tweens.add({ targets: this, angle: 0, duration: 180, ease: 'Back.out' });
           this.host.burst(this.x + direction.x * 14, this.y + direction.y * 14, 0xe5cc75, 3, 42);
@@ -147,7 +152,7 @@ export class EnemyActor extends Phaser.Physics.Arcade.Sprite {
       case 'bat': {
         const wobble = Math.sin(time * 0.006 + this.phaseSeed) * 0.62;
         const dive = time > this.nextActionAt && time < this.nextActionAt + 520 ? 1.75 : 1;
-        if (time > this.nextActionAt + 520) this.nextActionAt = time + Phaser.Math.Between(1700, 3200);
+        if (time > this.nextActionAt + 520) this.nextActionAt = time + this.cooldown(Phaser.Math.Between(1700, 3200));
         this.setVelocity((direction.x - direction.y * wobble) * speed * dive, (direction.y + direction.x * wobble) * speed * dive);
         this.setScale(this.baseScale * (1 + Math.sin(time * 0.02) * 0.12), this.baseScale * (1 - Math.sin(time * 0.02) * 0.08));
         break;
@@ -158,7 +163,7 @@ export class EnemyActor extends Phaser.Physics.Arcade.Sprite {
           else if (distance < 215) this.setVelocity(-direction.x * speed * 0.8, -direction.y * speed * 0.8);
           else this.setVelocity(-direction.y * speed * 0.32, direction.x * speed * 0.32);
           if (time >= this.nextActionAt && this.tryBeginRangedAttack(time)) {
-            this.nextActionAt = time + Math.max(850, 1900 - this.host.wave * 24);
+            this.nextActionAt = time + this.cooldown(Math.max(850, 1900 - this.host.wave * 24));
             this.host.fireEnemyProjectile(this.x, this.y, player.x, player.y, {
               texture: 'projectile-rock', speed: 205, damage: this.damage, scale: 0.58,
             });
@@ -177,7 +182,7 @@ export class EnemyActor extends Phaser.Physics.Arcade.Sprite {
         const strafe = Math.sin(time * 0.003 + this.phaseSeed) * 0.48;
         this.setVelocity((direction.x - direction.y * strafe) * speed, (direction.y + direction.x * strafe) * speed);
         if (time >= this.nextActionAt && this.tryBeginRangedAttack(time)) {
-          this.nextActionAt = time + Phaser.Math.Between(2100, 3300);
+          this.nextActionAt = time + this.cooldown(Phaser.Math.Between(2100, 3300));
           if (distance < 230) {
             this.host.playSfx('web', 0.36);
             const webX = player.x;
@@ -201,7 +206,7 @@ export class EnemyActor extends Phaser.Physics.Arcade.Sprite {
         this.setScale(this.baseScale / capBounce, this.baseScale * capBounce);
         if (time >= this.nextActionAt && distance < 290 && this.tryBeginRangedAttack(time)) {
           this.host.playSfx('spore', 0.3);
-          this.nextActionAt = time + 3400;
+          this.nextActionAt = time + this.cooldown(3400);
           const poolX = player.x;
           const poolY = player.y;
           const token = this.generation;
@@ -214,7 +219,7 @@ export class EnemyActor extends Phaser.Physics.Arcade.Sprite {
       case 'plant': {
         this.setVelocity(distance > 250 ? direction.x * speed : 0, distance > 250 ? direction.y * speed : 0);
         if (time >= this.nextActionAt && this.tryBeginRangedAttack(time)) {
-          this.nextActionAt = time + 2600;
+          this.nextActionAt = time + this.cooldown(2600);
           const leadX = player.x + (player.body instanceof Phaser.Physics.Arcade.Body ? player.body.velocity.x * 0.38 : 0);
           const leadY = player.y + (player.body instanceof Phaser.Physics.Arcade.Body ? player.body.velocity.y * 0.38 : 0);
           this.host.createDangerCircle(leadX, leadY, 52, 920, this.damage, 0x52c16a);
@@ -224,7 +229,7 @@ export class EnemyActor extends Phaser.Physics.Arcade.Sprite {
       case 'darkKnight': {
         this.setVelocity(direction.x * speed, direction.y * speed);
         if (time >= this.nextActionAt && this.tryBeginRangedAttack(time)) {
-          this.nextActionAt = time + 2300;
+          this.nextActionAt = time + this.cooldown(2300);
           if (distance < 150) this.host.createDangerCircle(this.x, this.y, 105, 650, this.damage * 1.1, 0x58638f);
           else this.host.fireEnemyProjectile(this.x, this.y, player.x, player.y, { texture: 'projectile-blood', speed: 245, damage: this.damage * 0.9, scale: 0.85 });
         }
@@ -234,7 +239,7 @@ export class EnemyActor extends Phaser.Physics.Arcade.Sprite {
         const flank = Math.sin(time * 0.002 + this.phaseSeed) * 0.7;
         this.setVelocity((direction.x - direction.y * flank) * speed, (direction.y + direction.x * flank) * speed);
         if (time >= this.nextActionAt && this.tryBeginRangedAttack(time)) {
-          this.nextActionAt = time + 2100;
+          this.nextActionAt = time + this.cooldown(2100);
           this.host.createDangerCircle(player.x + direction.x * 24, player.y + direction.y * 24, 48, 520, this.damage, 0x9ac75f);
         }
         break;
@@ -244,7 +249,7 @@ export class EnemyActor extends Phaser.Physics.Arcade.Sprite {
         else if (distance > 360) this.setVelocity(direction.x * speed, direction.y * speed);
         else this.setVelocity(-direction.y * speed * 0.5, direction.x * speed * 0.5);
         if (time >= this.nextActionAt && this.tryBeginRangedAttack(time)) {
-          this.nextActionAt = time + 1900;
+          this.nextActionAt = time + this.cooldown(1900);
           this.host.fireEnemyProjectile(this.x, this.y, player.x, player.y, { texture: 'projectile-blood', speed: 210, damage: this.damage, spread: 0.12, count: this.elite ? 3 : 1, scale: 0.9 });
           this.host.playSfx('curse', 0.32);
           this.host.burst(this.x, this.y - 18, 0xb980ff, this.elite ? 8 : 4, 55);
@@ -319,6 +324,10 @@ export class EnemyActor extends Phaser.Physics.Arcade.Sprite {
     if (this.host.requestRangedAttack(this)) return true;
     this.nextActionAt = time + Phaser.Math.Between(180, 320);
     return false;
+  }
+
+  private cooldown(milliseconds: number): number {
+    return Math.round(milliseconds * this.attackCooldownMultiplier);
   }
 
   private updateWolf(time: number, speed: number, direction: Phaser.Math.Vector2): void {

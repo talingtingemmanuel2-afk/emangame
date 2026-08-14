@@ -64,6 +64,7 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
   readonly attacksUsed = new Set<string>();
   private host!: BossHost;
   private nextAttackAt = 0;
+  private nextMeleeAt = 0;
   private attackIndex = 0;
   private chargeWindupUntil = 0;
   private chargeUntil = 0;
@@ -78,6 +79,7 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
   private nextRegenTick = 0;
   private dying = false;
   private leavingFireTrail = false;
+  private ultimateUsed = false;
   private nextTrailAt = 0;
   private visualAlpha = 1;
   private readonly shadow: Phaser.GameObjects.Ellipse;
@@ -117,6 +119,7 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
     this.damage = Math.round(tuning.damage * (1 + Math.max(0, wave - 1) * BOSS_SCALING.damagePerWave));
     this.nextAttackAt = this.scene.time.now + Math.max(1800, tuning.cadence * 0.72);
     this.attackIndex = 0;
+    this.nextMeleeAt = this.scene.time.now + 1400;
     this.chargeWindupUntil = 0;
     this.chargeUntil = 0;
     this.lastInfernoAt = -100_000;
@@ -128,6 +131,7 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
     this.regenDamage = 0;
     this.dying = false;
     this.leavingFireTrail = false;
+    this.ultimateUsed = false;
     this.visualAlpha = 1;
     this.lastAttack = 'Entrance';
     this.attacksUsed.clear();
@@ -263,9 +267,9 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
   private updatePhase(): void {
     const ratio = this.hp / this.maxHp;
     const nextPhase = this.kind === 'ancientBeast'
-      ? (ratio > 0.7 ? 1 : ratio > 0.4 ? 2 : 3)
+      ? (ratio > 0.5 ? 1 : ratio > 0.2 ? 2 : 3)
       : this.kind === 'dragon'
-        ? (ratio > 0.75 ? 1 : ratio > 0.5 ? 2 : ratio > 0.25 ? 3 : 4)
+        ? (ratio > 0.65 ? 1 : ratio > 0.3 ? 2 : 3)
         : (ratio > (this.kind === 'rooster' ? 0.35 : this.kind === 'minotaur' ? 0.3 : 0.4) ? 1 : 2);
     if (nextPhase !== this.phase) {
       this.phase = nextPhase;
@@ -279,13 +283,18 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
       else if (this.kind === 'wyvern') this.setTint(0xff9a67);
       else if (this.kind === 'troll') this.setTint(0xa4d768);
       else if (this.kind === 'darkMage') { this.setTint(0xb38cff); this.host.floatingText(this.x, this.y - 58, 'SOULSTORM!', '#d6bdff', true); }
-      else if (this.phase === 4) this.setTint(0xff805a);
+      else if (this.kind === 'ancientBeast') this.host.floatingText(this.x, this.y - 62, this.phase === 2 ? 'CORRUPTED AWAKENING!' : 'UNDEAD FRENZY!', '#9bf77b', true);
+      else if (this.kind === 'dragon') { this.setTint(0xff805a); this.host.floatingText(this.x, this.y - 62, this.phase === 2 ? "PHASE II — DRAGON'S FURY" : 'FINAL PHASE — ANCIENT INFERNO', '#ffb06a', true); this.host.playSfx('dragon-roar', 0.9); }
       this.host.bossHealthChanged(this);
     }
     if (this.kind === 'troll' && ratio < 0.62 && !this.regenUsed) this.beginTrollRegen();
   }
 
   private performAttack(time: number, direction: Phaser.Math.Vector2, distance: number): void {
+    if (distance <= this.meleeRange() && time >= this.nextMeleeAt) {
+      this.performMelee(time, direction);
+      return;
+    }
     this.attackIndex += 1;
     if (this.kind === 'rooster') this.roosterAttack(time, direction);
     else if (this.kind === 'golem' || this.kind === 'troll') this.golemAttack(time, direction);
@@ -296,6 +305,41 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
     else if (this.kind === 'wyvern') this.wyvernAttack(time, direction);
     else if (this.kind === 'ancientBeast') this.beastAttack(time, direction);
     else this.dragonAttack(time, direction, distance);
+  }
+
+  private meleeRange(): number {
+    if (this.kind === 'dragon') return 180;
+    if (this.kind === 'ancientBeast') return 165;
+    if (this.kind === 'wyvern' || this.kind === 'troll' || this.kind === 'minotaur') return 130;
+    return 112;
+  }
+
+  private performMelee(time: number, direction: Phaser.Math.Vector2): void {
+    const profiles: Record<BossKind, { name: string; range: number; spread: number; warning: number; damage: number; color: number; cooldown: number }> = {
+      rooster: { name: 'Talon Peck Combo', range: 138, spread: 1.35, warning: 430, damage: 1.18, color: 0xffbd69, cooldown: 1650 },
+      troll: { name: 'Club Swing', range: 150, spread: 1.65, warning: 620, damage: 1.28, color: 0xb8d77a, cooldown: 1900 },
+      minotaur: { name: 'Axe and Horn Combo', range: 155, spread: 1.5, warning: 520, damage: 1.3, color: 0xf0b46c, cooldown: 1750 },
+      werewolf: { name: 'Moonclaw Combo', range: 140, spread: 1.35, warning: 360, damage: 1.12, color: 0xcf9bff, cooldown: 1450 },
+      wyvern: { name: 'Bite and Wing Bash', range: 160, spread: 1.55, warning: 520, damage: 1.22, color: 0xff9a62, cooldown: 1800 },
+      ancientBeast: { name: 'Ancient Claw', range: 185, spread: 1.55, warning: 650, damage: 1.32, color: 0x7ee46d, cooldown: 1950 },
+      dragon: { name: 'Dragon Claw Combo', range: 205, spread: 1.55, warning: 600, damage: 1.35, color: 0xff8253, cooldown: 1800 },
+      golem: { name: 'Runestone Fist', range: 145, spread: 1.6, warning: 600, damage: 1.25, color: 0xd5b777, cooldown: 1900 },
+      vampire: { name: 'Crimson Rake', range: 135, spread: 1.3, warning: 400, damage: 1.16, color: 0xe45b83, cooldown: 1550 },
+      darkMage: { name: 'Grave Scythe', range: 150, spread: 1.45, warning: 540, damage: 1.2, color: 0x9d7af0, cooldown: 1800 },
+    };
+    const profile = profiles[this.kind];
+    this.announceAttack(profile.name, profile.color);
+    this.host.createDangerCone(this.x, this.y, direction.angle(), profile.range, profile.spread, profile.warning, this.damage * profile.damage, profile.color);
+    if (this.kind === 'rooster' || this.kind === 'werewolf' || this.kind === 'dragon') {
+      this.scene.time.delayedCall(profile.warning + 260, () => this.active && this.host.createDangerCone(this.x, this.y, direction.angle() + 0.28, profile.range + 12, profile.spread, 280, this.damage * 0.7, profile.color));
+    }
+    if (this.kind === 'ancientBeast' || this.kind === 'dragon' || this.kind === 'wyvern') {
+      this.scene.time.delayedCall(profile.warning + 520, () => this.active && this.host.createDangerRing(this.x, this.y, profile.range - 25, 38, 360, this.damage * 0.65, profile.color));
+    }
+    this.host.burst(this.x + direction.x * 55, this.y + direction.y * 55, profile.color, 14, 125);
+    this.nextMeleeAt = time + profile.cooldown;
+    this.recoverUntil = time + profile.warning + 850;
+    this.nextAttackAt = this.recoverUntil + 350;
   }
 
   private roosterAttack(time: number, direction: Phaser.Math.Vector2): void {
@@ -507,15 +551,48 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
 
   private beastAttack(time: number, direction: Phaser.Math.Vector2): void {
     const player = this.host.player;
-    const choice = this.attackIndex % (this.phase === 1 ? 4 : 6);
-    if (choice === 0) { this.announceAttack('Toxic Breath', 0x75e76a); this.host.createFireCone(this.x, this.y, direction.angle(), 410, 0.82, this.damage * 1.35); this.recoverUntil = time + 1800; }
-    else if (choice === 1) { this.announceAttack('Bone Volley', 0xe7dfbb); this.host.fireEnemyProjectile(this.x, this.y, player.x, player.y, { texture: 'projectile-rock', speed: 260, damage: this.damage, spread: 0.2, count: 5, scale: 1.15 }); this.host.playSfx('bone', 0.65); this.recoverUntil = time + 1050; }
-    else if (choice === 2) { this.announceAttack('Graveburst', 0x69ce62); this.host.createDangerCircle(this.x, this.y, 175, 650, this.damage * 1.2, 0x69ce62); this.recoverUntil = time + 1350; }
-    else if (choice === 3) { this.announceAttack('Rotting Charge', 0x9be16e); this.telegraphCharge(direction, 620, this.phase === 3 ? 720 : 560); }
-    else if (choice === 4) { this.announceAttack('Raise the Fallen', 0xa984d4); for (let i = 0; i < 4; i += 1) this.host.spawnEnemy(i % 2 ? 'skeleton' : 'zombie', this.x + Phaser.Math.Between(-130, 130), this.y + Phaser.Math.Between(-130, 130)); this.recoverUntil = time + 1400; }
-    else { this.announceAttack('Corruption Meteor', 0x9a73cf); for (let i = 0; i < (this.phase === 3 ? 8 : 5); i += 1) this.host.createDangerCircle(player.x + Phaser.Math.Between(-220, 220), player.y + Phaser.Math.Between(-160, 160), 64, 850 + i * 80, this.damage, 0x64d35f); this.recoverUntil = time + 2300; }
-    if (this.phase >= 2 && choice === 3) for (let i = 1; i <= 3; i += 1) this.scene.time.delayedCall(i * 260, () => this.active && this.host.createDangerCircle(this.x - direction.x * i * 70, this.y - direction.y * i * 70, 42, 360, this.damage * 0.6, 0x5fbd54));
-    this.scheduleNextAttack(time, [1, 0.85, 0.95, 1.15, 1.3, 1.35][choice]);
+    const attacks = this.phase === 1 ? 5 : 8;
+    const choice = this.attackIndex % attacks;
+    if (choice === 0) {
+      this.announceAttack('Rotten Fire Breath', 0x75e76a);
+      this.host.createDangerCone(this.x, this.y, direction.angle(), 430, 0.9, 900, this.damage * 1.25, 0x75e76a);
+      this.scene.time.delayedCall(900, () => this.active && this.host.createFireCone(this.x, this.y, direction.angle(), 430, 0.9, this.damage * 1.35));
+      this.recoverUntil = time + 2350;
+    } else if (choice === 1) {
+      this.announceAttack('Bone Storm', 0xe7dfbb);
+      const count = this.phase === 3 ? 22 : 16;
+      for (let i = 0; i < count; i += 1) {
+        if (i % 7 === 0) continue;
+        const angle = i * Math.PI * 2 / count + this.attackIndex * 0.19;
+        this.host.fireEnemyProjectile(this.x, this.y, this.x + Math.cos(angle) * 100, this.y + Math.sin(angle) * 100, { texture: 'projectile-rock', speed: 235 + (i % 3) * 18, damage: this.damage * 0.62, scale: 0.92 });
+      }
+      this.host.playSfx('bone', 0.7); this.recoverUntil = time + 1650;
+    } else if (choice === 2) {
+      this.announceAttack('Tail Sweep', 0x9bd66f);
+      this.host.createDangerRing(this.x, this.y, 175, 58, 780, this.damage * 1.18, 0x78bd62);
+      this.recoverUntil = time + 1550;
+    } else if (choice === 3) {
+      this.announceAttack('Death Grab', 0xc4df8b);
+      this.host.createDangerCone(this.x, this.y, direction.angle(), 205, 0.82, 920, this.damage * 1.5, 0xb7d875);
+      this.scene.time.delayedCall(940, () => this.active && Phaser.Math.Distance.Between(this.x, this.y, player.x, player.y) < 215 && this.host.pushPlayerFrom(this.x, this.y, 150));
+      this.recoverUntil = time + 1900;
+    } else if (choice === 4) {
+      this.announceAttack('Raise the Fallen', 0xa984d4);
+      for (let i = 0; i < 4; i += 1) this.host.spawnEnemy(i === 3 ? 'skeleton' : 'zombie', this.x + Math.cos(i * 1.57) * 135, this.y + Math.sin(i * 1.57) * 135);
+      this.recoverUntil = time + 1750;
+    } else if (choice === 5) {
+      this.announceAttack('Corrupted Meteors', 0x9a73cf);
+      const count = this.phase === 3 ? 7 : 5;
+      for (let i = 0; i < count; i += 1) { const angle = i * 2.4; this.host.createDangerCircle(player.x + Math.cos(angle) * (105 + i * 18), player.y + Math.sin(angle) * (85 + i * 14), 58, 900 + i * 130, this.damage, 0x64d35f); }
+      this.recoverUntil = time + 2500;
+    } else if (choice === 6) {
+      this.announceAttack('Corruption Eruption', 0x69ce62);
+      for (let lane = -2; lane <= 2; lane += 1) for (let step = 1; step <= 4; step += 1) if ((lane + step) % 3 !== 0) this.host.createDangerCircle(this.x + direction.x * step * 82 - direction.y * lane * 68, this.y + direction.y * step * 82 + direction.x * lane * 68, 34, 760 + step * 95, this.damage * 0.72, 0x69ce62);
+      this.recoverUntil = time + 2100;
+    } else {
+      this.announceAttack('Rotting Charge', 0x9be16e); this.telegraphCharge(direction, 720, this.phase === 3 ? 690 : 570, 850);
+    }
+    this.scheduleNextAttack(time, [1.2, 1.05, 1, 1.2, 1.45, 1.55, 1.35, 1.25][choice]);
   }
 
   private vampireAttack(time: number, direction: Phaser.Math.Vector2, distance: number): void {
@@ -611,12 +688,14 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
 
   private dragonAttack(time: number, direction: Phaser.Math.Vector2, distance: number): void {
     const player = this.host.player;
-    const pool: Array<'fireball' | 'claw' | 'tail' | 'breath' | 'dash' | 'meteor' | 'tornado' | 'summon'> = ['fireball', 'claw', 'tail'];
-    if (this.phase >= 2) pool.push('breath', 'dash');
-    if (this.phase >= 3) pool.push('meteor', 'tornado', 'summon');
-    if (this.phase === 4 && time - this.lastInfernoAt > BOSS_SCALING.infernoCooldownMs) {
+    type DragonAttack = 'fireball' | 'claw' | 'tail' | 'breath' | 'charge' | 'hurricane' | 'skyfall' | 'flameWall' | 'eruption' | 'hunting' | 'flameClaws' | 'meteor' | 'roar' | 'rush';
+    const pool: DragonAttack[] = ['claw', 'tail', 'breath', 'fireball', 'charge', 'hurricane'];
+    if (this.phase >= 2) pool.push('skyfall', 'flameWall', 'eruption', 'hunting', 'flameClaws');
+    if (this.phase >= 3) pool.push('meteor', 'roar', 'rush');
+    if (this.phase === 3 && !this.ultimateUsed && this.hp / this.maxHp < 0.22 && time - this.lastInfernoAt > BOSS_SCALING.infernoCooldownMs) {
+      this.ultimateUsed = true;
       this.lastInfernoAt = time;
-      this.announceAttack('Worldfire Inferno', 0xff5b38);
+      this.announceAttack('The End of the Forest', 0xff5b38);
       this.host.createInferno(this);
       this.nextAttackAt = time + BOSS_SCALING.infernoRecoveryMs;
       this.recoverUntil = this.nextAttackAt;
@@ -627,14 +706,12 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
       this.announceAttack('Elder Fireballs', 0xff8d52);
       this.host.fireEnemyProjectile(this.x, this.y - 15, player.x, player.y, {
         texture: 'projectile-fireball', speed: 255 + this.phase * 20, damage: this.damage,
-        spread: 0.13, count: this.phase === 4 ? 5 : 3, scale: 1.15,
+        spread: 0.15, count: this.phase === 3 ? 11 : this.phase === 2 ? 8 : 6, scale: 1.15,
       });
       this.host.playSfx('fire', 0.65);
       this.recoverUntil = time + 900;
     } else if (attack === 'claw') {
-      this.announceAttack('Titan Claw', 0xff9b62);
-      this.host.createDangerCircle(this.x, this.y, distance < 130 ? 135 : 105, 620, this.damage * 1.15, 0xff814f);
-      this.recoverUntil = time + 1350;
+      this.performMelee(time, direction); return;
     } else if (attack === 'tail') {
       this.announceAttack('Spiked Tail Sweep', 0xffad62);
       this.host.createDangerCircle(this.x, this.y, 175, 820, this.damage * 1.1, 0xffa058);
@@ -643,12 +720,13 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
       this.announceAttack('Forestfire Breath', 0xff7145);
       this.host.createFireCone(this.x, this.y, direction.angle(), 380, 0.82, this.damage * 1.35);
       this.recoverUntil = time + 1900;
-    } else if (attack === 'dash') {
-      this.announceAttack('Wingfold Dash', 0xffc06b);
-      this.telegraphCharge(direction, 680, 590);
+    } else if (attack === 'charge') {
+      this.announceAttack('Dragon Charge', 0xffc06b);
+      this.host.createDangerLine(this.x, this.y, direction.angle(), 720, 105, 850, this.damage * 1.35, 0xff9c52);
+      this.telegraphCharge(direction, 850, 650, 950, true);
     } else if (attack === 'meteor') {
       this.announceAttack('Ancient Meteors', 0xff5f3d);
-      const count = this.phase === 4 ? 7 : 4;
+      const count = this.phase === 3 ? 9 : 6;
       for (let i = 0; i < count; i += 1) {
         this.scene.time.delayedCall(i * 190, () => {
           const px = player.x + Phaser.Math.Between(-210, 210);
@@ -657,21 +735,47 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
         });
       }
       this.recoverUntil = time + 2400;
-    } else if (attack === 'tornado') {
-      this.announceAttack('Tempest Seed', 0xb9e5ce);
-      const velocity = new Phaser.Math.Vector2(direction.x, direction.y).rotate(Phaser.Math.FloatBetween(-0.8, 0.8)).scale(85);
-      this.host.createMovingHazard(this.x, this.y, velocity, this.damage * 0.8);
-      this.recoverUntil = time + 1100;
-    } else {
-      this.announceAttack('Call of the Wild', 0x8ed977);
-      const summonKinds: EnemyKind[] = ['wolf', 'bat', 'skeleton'];
-      for (let i = 0; i < (this.phase === 4 ? 5 : 3); i += 1) {
-        this.host.spawnEnemy(summonKinds[i % summonKinds.length], this.x + Phaser.Math.Between(-120, 120), this.y + Phaser.Math.Between(-120, 120));
-      }
+    } else if (attack === 'hurricane') {
+      this.announceAttack('Wing Hurricane', 0xb9e5ce);
+      for (let i = -2; i <= 2; i += 1) if (i !== 0) this.host.createMovingHazard(this.x, this.y, direction.clone().rotate(i * 0.28).scale(90), this.damage * 0.65);
+      if (distance < 260) this.host.pushPlayerFrom(this.x, this.y, 90);
       this.recoverUntil = time + 1500;
+    } else if (attack === 'skyfall') {
+      this.announceAttack('Skyfall', 0xffbd73);
+      const x = player.x + Phaser.Math.Between(-55, 55); const y = player.y + Phaser.Math.Between(-55, 55);
+      this.host.createDangerCircle(x, y, this.phase === 3 ? 125 : 105, 1200, this.damage * 1.48, 0xff7848);
+      this.setBossAlpha(0.12); this.scene.time.delayedCall(1180, () => { if (!this.active) return; this.setPosition(x, y); this.setBossAlpha(1); this.host.burst(x, y, 0xff8b50, 36, 240); this.scene.cameras.main.shake(300, 0.012); });
+      this.recoverUntil = time + 2600;
+    } else if (attack === 'flameWall') {
+      this.announceAttack('Flame Wall', 0xff6740);
+      const angle = direction.angle() + Math.PI / 2;
+      for (let lane = -3; lane <= 3; lane += 1) if (lane !== ((this.attackIndex % 3) - 1)) this.host.createDangerLine(player.x + Math.cos(angle) * lane * 95, player.y + Math.sin(angle) * lane * 95, direction.angle(), 520, 44, 1050, this.damage * 0.82, 0xff5d38);
+      this.recoverUntil = time + 2300;
+    } else if (attack === 'eruption') {
+      this.announceAttack('Volcanic Eruption', 0xff7a39);
+      for (let i = 0; i < 8; i += 1) { const angle = i * Math.PI / 4; this.host.createDangerCircle(this.x + Math.cos(angle) * (120 + (i % 2) * 95), this.y + Math.sin(angle) * (120 + (i % 2) * 95), 45, 980 + (i % 2) * 260, this.damage, 0xff733c); }
+      this.recoverUntil = time + 2400;
+    } else if (attack === 'hunting') {
+      this.announceAttack('Hunting Fireball', 0xff9c48);
+      this.host.createMovingHazard(this.x, this.y, direction.clone().scale(72), this.damage * 1.12);
+      this.recoverUntil = time + 1500;
+    } else if (attack === 'flameClaws') {
+      this.announceAttack('Flame Claws', 0xff663d); this.attackBuffUntil = time + 6200;
+      this.host.createDangerCone(this.x, this.y, direction.angle(), 220, 1.5, 720, this.damage * 1.25, 0xff663d);
+      this.recoverUntil = time + 1550;
+    } else if (attack === 'roar') {
+      this.announceAttack('Dragon Roar', 0xffd18a); this.host.playSfx('dragon-roar', 0.88);
+      for (let i = 1; i <= 3; i += 1) this.host.createDangerRing(this.x, this.y, 75 + i * 65, 20, 450 + i * 180, this.damage * 0.34, 0xffa45c);
+      this.scene.time.delayedCall(700, () => this.active && this.host.pushPlayerFrom(this.x, this.y, 125)); this.recoverUntil = time + 1700;
+    } else {
+      this.announceAttack('Dragon Rush Combo', 0xff5937);
+      this.host.createDangerLine(this.x, this.y, direction.angle(), 680, 92, 760, this.damage * 1.2, 0xff5937);
+      this.telegraphCharge(direction, 760, 720, 1100, true);
+      this.scene.time.delayedCall(1600, () => this.active && this.host.fireEnemyProjectile(this.x, this.y, player.x, player.y, { texture: 'projectile-fireball', speed: 330, damage: this.damage, spread: 0.2, count: 3, scale: 1.1 }));
     }
-    const cadenceMultiplier: Record<typeof attack, number> = {
-      fireball: 0.9, claw: 0.9, tail: 1, breath: 1.2, dash: 1.25, meteor: 1.8, tornado: 1, summon: 2,
+    const cadenceMultiplier: Record<DragonAttack, number> = {
+      fireball: 0.9, claw: 0.9, tail: 1, breath: 1.2, charge: 1.25, hurricane: 1.1,
+      skyfall: 1.55, flameWall: 1.35, eruption: 1.45, hunting: 1.05, flameClaws: 1.2, meteor: 1.7, roar: 1.25, rush: 1.65,
     };
     this.scheduleNextAttack(time, cadenceMultiplier[attack]);
   }
@@ -722,7 +826,7 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
   }
 
   private restoreBossTint(): void {
-    if (this.kind === 'dragon' && this.phase === 4) this.setTint(0xff805a);
+    if (this.kind === 'dragon' && this.phase === 3) this.setTint(0xff805a);
     else if (this.kind === 'ancientBeast') this.setTint(0x72d36f);
     else if (this.kind === 'rooster' && this.phase >= 2) this.setTint(0xff7566);
     else if (this.kind === 'minotaur' && this.phase >= 2) this.setTint(0xff7659);

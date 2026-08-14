@@ -110,6 +110,14 @@ export class HUD {
     this.bossName.setText(name);
     this.bossFill.setFillStyle(theme === 'corrupted' ? 0x52a84f : theme === 'fire' ? 0xe14e32 : 0xd25153, 1);
     this.bossPhase.setText(phase ? `PHASE ${phase}  •  ${Math.max(0, Math.ceil(hp)).toLocaleString()} HP` : `${Math.max(0, Math.ceil(hp)).toLocaleString()} HP`);
+    const hpText = `${Math.max(0, Math.ceil(hp)).toLocaleString()} HP`;
+    if (phase && name === 'Ancient Forest Dragon') {
+      const phaseName = phase === 1 ? 'PHASE I' : phase === 2 ? "PHASE II - DRAGON'S FURY" : 'FINAL PHASE - ANCIENT INFERNO';
+      this.bossPhase.setText(`${phaseName}  |  ${hpText}  |  I : 65% II : 30% III`);
+    } else if (phase && name.includes('Ancient Beast')) {
+      const phaseName = phase === 1 ? 'PHASE I' : phase === 2 ? 'CORRUPTED AWAKENING' : 'UNDEAD FRENZY';
+      this.bossPhase.setText(`${phaseName}  |  ${hpText}`);
+    }
   }
 
   hideBoss(): void {
