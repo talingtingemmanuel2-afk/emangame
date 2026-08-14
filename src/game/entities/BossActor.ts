@@ -82,6 +82,7 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
   private ultimateUsed = false;
   private dragonSecondHealthBarUsed = false;
   private phaseTransitionInvulnerableUntil = 0;
+  private nextPressureDashAt = 0;
   private nextTrailAt = 0;
   private visualAlpha = 1;
   private readonly shadow: Phaser.GameObjects.Ellipse;
@@ -136,6 +137,7 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
     this.ultimateUsed = false;
     this.dragonSecondHealthBarUsed = false;
     this.phaseTransitionInvulnerableUntil = 0;
+    this.nextPressureDashAt = this.scene.time.now + 1600;
     this.visualAlpha = 1;
     this.lastAttack = 'Entrance';
     this.attacksUsed.clear();
@@ -624,6 +626,7 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
       this.announceAttack('Rotting Charge', 0x9be16e); this.telegraphCharge(direction, 720, this.phase === 3 ? 690 : 570, 850);
     }
     this.scheduleNextAttack(time, [1.2, 1.05, 1, 1.2, 1.45, 1.55, 1.35, 1.25][choice]);
+    if (choice !== 7 && time >= this.nextPressureDashAt) this.queuePressureDash(time, 620, this.phase === 3 ? 940 : 820, false);
   }
 
   private vampireAttack(time: number, direction: Phaser.Math.Vector2, distance: number): void {
@@ -823,6 +826,21 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
       skyfall: 1.55, flameWall: 1.35, eruption: 1.45, hunting: 1.05, flameClaws: 1.2, meteor: 1.7, roar: 1.25, rush: 1.65,
     };
     this.scheduleNextAttack(time, cadenceMultiplier[attack]);
+    if (!['charge', 'rush', 'skyfall'].includes(attack) && time >= this.nextPressureDashAt) {
+      this.queuePressureDash(time, 480, this.phase >= 2 ? 1080 : 940, true);
+    }
+  }
+
+  private queuePressureDash(time: number, delayMs: number, speed: number, fireTrail: boolean): void {
+    const token = this.generation;
+    this.nextPressureDashAt = time + (this.kind === 'dragon' ? 1450 : 1850);
+    this.scene.time.delayedCall(delayMs, () => {
+      if (!this.active || this.dying || this.generation !== token || this.scene.time.now < this.chargeUntil) return;
+      const direction = new Phaser.Math.Vector2(this.host.player.x - this.x, this.host.player.y - this.y).normalize();
+      this.announceAttack(this.kind === 'dragon' ? 'Relentless Dragon Dash' : 'Undead Predator Dash', this.kind === 'dragon' ? 0xffa05a : 0x8fe76d);
+      this.host.createDangerLine(this.x, this.y, direction.angle(), 690, this.kind === 'dragon' ? 96 : 82, 430, this.damage * 1.1, this.kind === 'dragon' ? 0xff7845 : 0x75d568);
+      this.telegraphCharge(direction, 430, speed, 360, fireTrail);
+    });
   }
 
   private scheduleNextAttack(time: number, multiplier = 1): void {
