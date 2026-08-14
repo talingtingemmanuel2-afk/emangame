@@ -32,47 +32,47 @@ export const ENEMY_DEFINITIONS: Record<EnemyKind, EnemyDefinition> = {
 
 export const ABILITY_DEFINITIONS: Record<AbilityId, AbilityDefinition> = {
   bolt: {
-    id: 'bolt', name: 'Starlight Bolt', icon: 'icon-bolt', maxLevel: 8, accent: 0x72e6d2,
+    id: 'bolt', name: 'Starlight Bolt', icon: 'icon-bolt', maxLevel: 5, accent: 0x72e6d2,
     description: 'Fires at the nearest threat. Upgrades add power, bolts, and piercing.', evolution: 'Prismatic Volley',
   },
   orb: {
-    id: 'orb', name: 'Moon Orbs', icon: 'icon-orb', maxLevel: 8, accent: 0xc5b3ff,
+    id: 'orb', name: 'Moon Orbs', icon: 'icon-orb', maxLevel: 5, accent: 0xc5b3ff,
     description: 'Orbiting wisps damage and push back nearby enemies.', evolution: 'Celestial Barrier',
   },
   meteor: {
-    id: 'meteor', name: 'Starfall', icon: 'icon-meteor', maxLevel: 8, accent: 0xff9f55,
+    id: 'meteor', name: 'Starfall', icon: 'icon-meteor', maxLevel: 5, accent: 0xff9f55,
     description: 'Marks dense groups before crashing explosive meteors.', evolution: 'Meteor Apocalypse',
   },
   poison: {
-    id: 'poison', name: 'Witchbloom Flask', icon: 'icon-poison', maxLevel: 8, accent: 0x75d86b,
+    id: 'poison', name: 'Witchbloom Flask', icon: 'icon-poison', maxLevel: 5, accent: 0x75d86b,
     description: 'Throws flasks that leave slowing poison pools.', evolution: 'Plague Garden',
   },
   shuriken: {
-    id: 'shuriken', name: 'Fae Shuriken', icon: 'icon-shuriken', maxLevel: 8, accent: 0xf5d57c,
+    id: 'shuriken', name: 'Fae Shuriken', icon: 'icon-shuriken', maxLevel: 5, accent: 0xf5d57c,
     description: 'Spinning blades pierce through enemy lines.', evolution: 'Thousand Petals',
   },
   laser: {
-    id: 'laser', name: 'Dawn Ray', icon: 'icon-laser', maxLevel: 8, accent: 0xfff3a1,
+    id: 'laser', name: 'Dawn Ray', icon: 'icon-laser', maxLevel: 5, accent: 0xfff3a1,
     description: 'A piercing ray links the heroine to distant prey.', evolution: 'Aurora Lance',
   },
   arrow: {
-    id: 'arrow', name: 'Rebound Arrowhead', icon: 'icon-arrow', maxLevel: 8, accent: 0x76d7ff,
+    id: 'arrow', name: 'Rebound Arrowhead', icon: 'icon-arrow', maxLevel: 5, accent: 0x76d7ff,
     description: 'Ancient arrowheads ricochet from the world and monsters.', evolution: 'Endless Hunt',
   },
   lightning: {
-    id: 'lightning', name: 'Chain Lightning', icon: 'icon-lightning', maxLevel: 8, accent: 0x9ddcff,
+    id: 'lightning', name: 'Chain Lightning', icon: 'icon-lightning', maxLevel: 5, accent: 0x9ddcff,
     description: 'Lightning leaps through tightly packed foes.', evolution: 'Stormcrown',
   },
   fireRing: {
-    id: 'fireRing', name: 'Ember Halo', icon: 'icon-fire-ring', maxLevel: 8, accent: 0xff7f5b,
+    id: 'fireRing', name: 'Ember Halo', icon: 'icon-fire-ring', maxLevel: 5, accent: 0xff7f5b,
     description: 'A periodic ring of fire clears breathing room.', evolution: 'Solar Corona',
   },
   iceStorm: {
-    id: 'iceStorm', name: 'Winterglass', icon: 'icon-ice', maxLevel: 8, accent: 0xa8efff,
+    id: 'iceStorm', name: 'Winterglass', icon: 'icon-ice', maxLevel: 5, accent: 0xa8efff,
     description: 'Ice shards seek nearby enemies and slow their advance.', evolution: 'Absolute Bloom',
   },
   blackHole: {
-    id: 'blackHole', name: 'Night Vortex', icon: 'icon-black-hole', maxLevel: 8, accent: 0xb17cff, rare: true,
+    id: 'blackHole', name: 'Night Vortex', icon: 'icon-black-hole', maxLevel: 5, accent: 0xb17cff, rare: true,
     description: 'A rare singularity pulls, wounds, then detonates.', evolution: 'Eventide Collapse',
   },
 };

@@ -544,7 +544,7 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
     if (this.activeWarnings >= ENEMY_BALANCE.maxDangerWarnings) return;
     this.activeWarnings += 1;
     const warning = this.add.circle(x, y, radius, color, 0.11).setStrokeStyle(4, color, 0.85).setDepth(7000);
-    this.tweens.add({ targets: warning, scale: 0.6, alpha: 0.52, duration: delay, ease: 'Sine.in', onComplete: () => {
+    this.tweens.add({ targets: warning, scale: { from: 1, to: 0.98 }, alpha: 0.52, duration: delay, ease: 'Sine.in', onComplete: () => {
       if (!warning.active) return;
       const playerDistance = Phaser.Math.Distance.Between(x, y, this.player.x, this.player.y);
       if (playerDistance <= radius) this.damagePlayer(damage);
@@ -561,7 +561,7 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
     const centerX = x + Math.cos(angle) * length * 0.5;
     const centerY = y + Math.sin(angle) * length * 0.5;
     const warning = this.add.rectangle(centerX, centerY, length, width, color, 0.12).setStrokeStyle(3, color, 0.86).setRotation(angle).setDepth(7100);
-    this.tweens.add({ targets: warning, alpha: 0.48, scaleY: 0.72, duration: delay, onComplete: () => {
+    this.tweens.add({ targets: warning, alpha: 0.48, scaleY: 1, duration: delay, onComplete: () => {
       if (!warning.active) return;
       const line = new Phaser.Geom.Line(x, y, x + Math.cos(angle) * length, y + Math.sin(angle) * length);
       const nearest = Phaser.Geom.Line.GetNearestPoint(line, new Phaser.Math.Vector2(this.player.x, this.player.y));

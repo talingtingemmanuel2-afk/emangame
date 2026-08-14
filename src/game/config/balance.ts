@@ -113,7 +113,7 @@ export const BOSS_SCALING = {
 } as const;
 
 // Offensive skill cadence is intentionally per-ability. `base` is the level-1
-// delay, `perLevel` applies at levels 2-7, and `evolved` is the level-8 delay.
+// delay, `perLevel` applies at levels 2-4, and `evolved` is the level-5 delay.
 export const ABILITY_COOLDOWNS = {
   bolt:      { base: 390,  perLevel: 0.945, evolved: 245,  minimum: 190 },
   meteor:    { base: 5100, perLevel: 0.925, evolved: 2450, minimum: 1900 },

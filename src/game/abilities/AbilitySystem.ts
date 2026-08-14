@@ -6,6 +6,8 @@ import type { BossActor } from '../entities/BossActor';
 import type { Player } from '../entities/Player';
 import { ABILITY_COOLDOWNS, COMBAT } from '../config/balance';
 
+const EVOLUTION_LEVEL = 5;
+
 export type Foe = EnemyActor | BossActor;
 
 export interface AbilityHost {
@@ -130,7 +132,7 @@ export class AbilitySystem {
         x: this.host.player.x, y: this.host.player.y - 4, angle: baseAngle + offset,
         texture: 'projectile-bolt', speed: 520 * this.host.player.stats.projectileSpeed,
         damage: 20 * (1 + level * 0.22), lifespan: 1600, pierce: level >= 6 ? 2 : level >= 3 ? 1 : 0,
-        scale: 0.9 * this.visualScale(level), tint: level >= 8 ? 0xfff1a6 : 0x72e6d2, ability: 'bolt',
+        scale: 0.9 * this.visualScale(level), tint: level >= EVOLUTION_LEVEL ? 0xfff1a6 : 0x72e6d2, ability: 'bolt',
       });
     }
     this.host.playSfx('bolt', 0.22);
@@ -144,7 +146,7 @@ export class AbilitySystem {
     this.orbAngle += delta * (0.0019 + level * 0.00011);
     const radius = (58 + Math.floor(level / 2) * 9) * this.visualScale(level) * this.ancient.orbRadius;
     for (let i = 0; i < this.orbs.length; i += 1) {
-      const ring = level >= 8 && i >= Math.ceil(this.orbs.length / 2) ? 0.72 : 1;
+      const ring = level >= EVOLUTION_LEVEL && i >= Math.ceil(this.orbs.length / 2) ? 0.72 : 1;
       const angle = this.orbAngle * (ring < 1 ? -1 : 1) + (Math.PI * 2 * i) / Math.ceil(this.orbs.length / 2);
       const orb = this.orbs[i];
       orb.setPosition(this.host.player.x + Math.cos(angle) * radius * ring, this.host.player.y + Math.sin(angle) * radius * ring);
@@ -166,7 +168,7 @@ export class AbilitySystem {
     if (!level || time < this.nextUse.meteor) return;
     const target = this.host.findDenseFoe();
     if (!target) return;
-    const count = 1 + Math.floor(level / 4) + (level >= 8 ? 2 : 0) + this.ancient.meteorExtra;
+    const count = 1 + Math.floor(level / 4) + (level >= EVOLUTION_LEVEL ? 2 : 0) + this.ancient.meteorExtra;
     for (let i = 0; i < count; i += 1) {
       const x = target.x + Phaser.Math.Between(-80, 80);
       const y = target.y + Phaser.Math.Between(-80, 80);
@@ -184,7 +186,7 @@ export class AbilitySystem {
         meteor.destroy();
         ring.destroy();
         this.host.areaDamage(x, y, (70 + level * 7) * Math.min(visual, 2.4), 42 + level * 18, 'meteor', { tint: 0xff8a4d });
-        this.host.burst(x, y, 0xff8a4d, level >= 8 ? 36 : 24, 220 * visual);
+        this.host.burst(x, y, 0xff8a4d, level >= EVOLUTION_LEVEL ? 36 : 24, 220 * visual);
         this.host.playSfx('slam', 0.45);
         this.scene.cameras.main.shake(110, 0.0038);
       }});
@@ -215,11 +217,11 @@ export class AbilitySystem {
     if (!level || time < this.nextUse.shuriken) return;
     const target = this.host.findNearestFoe(this.host.player.x, this.host.player.y, 900);
     if (!target) return;
-    const count = level >= 8 ? 12 : 1 + Math.floor(level / 3);
+    const count = level >= EVOLUTION_LEVEL ? 12 : 1 + Math.floor(level / 3);
     const base = Phaser.Math.Angle.Between(this.host.player.x, this.host.player.y, target.x, target.y);
     for (let i = 0; i < count; i += 1) {
       this.host.firePlayerProjectile({
-        x: this.host.player.x, y: this.host.player.y, angle: level >= 8 ? base + (Math.PI * 2 * i) / count : base + (i - (count - 1) / 2) * 0.19,
+        x: this.host.player.x, y: this.host.player.y, angle: level >= EVOLUTION_LEVEL ? base + (Math.PI * 2 * i) / count : base + (i - (count - 1) / 2) * 0.19,
         texture: 'projectile-shuriken', speed: 430 + level * 20, damage: 18 + level * 9,
         lifespan: 2100, pierce: 1 + Math.floor(level / 2), scale: (0.8 + level * 0.035) * this.visualScale(level),
         tint: 0xffe496, ability: 'shuriken', rotate: 800,
@@ -237,7 +239,7 @@ export class AbilitySystem {
     const angle = Phaser.Math.Angle.Between(origin.x, origin.y, target.x, target.y);
     const length = 720;
     const beamScale = this.visualScale(level) * this.ancient.laserWidth;
-    const beams = level >= 8 ? [-0.24, 0, 0.24] : [0];
+    const beams = level >= EVOLUTION_LEVEL ? [-0.24, 0, 0.24] : [0];
     for (const offset of beams) {
       const beamAngle = angle + offset;
       const end = new Phaser.Math.Vector2(origin.x + Math.cos(beamAngle) * length, origin.y + Math.sin(beamAngle) * length);
@@ -259,7 +261,7 @@ export class AbilitySystem {
   private useArrow(time: number, cooldownMultiplier: number): void {
     const level = this.getLevel('arrow');
     if (!level || time < this.nextUse.arrow) return;
-    const count = 1 + Math.floor(level / 4) + (level >= 8 ? 2 : 0) + this.ancient.arrowExtra;
+    const count = 1 + Math.floor(level / 4) + (level >= EVOLUTION_LEVEL ? 2 : 0) + this.ancient.arrowExtra;
     for (let i = 0; i < count; i += 1) {
       const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
       this.host.firePlayerProjectile({
@@ -340,7 +342,7 @@ export class AbilitySystem {
 
   private syncOrbs(): void {
     const level = this.getLevel('orb');
-    const desired = (level >= 8 ? 10 : 1 + Math.floor((level - 1) / 2)) + this.ancient.orbExtra;
+    const desired = (level >= EVOLUTION_LEVEL ? 10 : 1 + Math.floor((level - 1) / 2)) + this.ancient.orbExtra;
     while (this.orbs.length < desired) {
       this.orbs.push(this.scene.add.image(this.host.player.x, this.host.player.y, 'orb').setBlendMode(Phaser.BlendModes.ADD));
     }
@@ -356,7 +358,7 @@ export class AbilitySystem {
 
   private setNextUse(id: keyof Cooldowns, time: number, level: number, multiplier: number): void {
     const tuning = ABILITY_COOLDOWNS[id];
-    const raw = level >= 8 ? tuning.evolved : tuning.base * Math.pow(tuning.perLevel, Math.max(0, level - 1));
+    const raw = level >= EVOLUTION_LEVEL ? tuning.evolved : tuning.base * Math.pow(tuning.perLevel, Math.max(0, level - 1));
     const duration = Math.max(tuning.minimum, raw * multiplier);
     this.lastCooldown.set(id, duration);
     this.nextUse[id] = time + duration;
