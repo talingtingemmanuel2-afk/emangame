@@ -117,7 +117,7 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
     this.maxHp = Math.round(tuning.hp * hpScale);
     this.hp = this.maxHp;
     this.damage = Math.round(tuning.damage * (1 + Math.max(0, wave - 1) * BOSS_SCALING.damagePerWave));
-    this.nextAttackAt = this.scene.time.now + Math.max(1800, tuning.cadence * 0.72);
+    this.nextAttackAt = this.scene.time.now + Math.max(1200, tuning.cadence * 0.58);
     this.attackIndex = 0;
     this.nextMeleeAt = this.scene.time.now + 1400;
     this.chargeWindupUntil = 0;
@@ -316,16 +316,16 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
 
   private performMelee(time: number, direction: Phaser.Math.Vector2): void {
     const profiles: Record<BossKind, { name: string; range: number; spread: number; warning: number; damage: number; color: number; cooldown: number }> = {
-      rooster: { name: 'Talon Peck Combo', range: 138, spread: 1.35, warning: 430, damage: 1.18, color: 0xffbd69, cooldown: 1650 },
-      troll: { name: 'Club Swing', range: 150, spread: 1.65, warning: 620, damage: 1.28, color: 0xb8d77a, cooldown: 1900 },
-      minotaur: { name: 'Axe and Horn Combo', range: 155, spread: 1.5, warning: 520, damage: 1.3, color: 0xf0b46c, cooldown: 1750 },
-      werewolf: { name: 'Moonclaw Combo', range: 140, spread: 1.35, warning: 360, damage: 1.12, color: 0xcf9bff, cooldown: 1450 },
-      wyvern: { name: 'Bite and Wing Bash', range: 160, spread: 1.55, warning: 520, damage: 1.22, color: 0xff9a62, cooldown: 1800 },
-      ancientBeast: { name: 'Ancient Claw', range: 185, spread: 1.55, warning: 650, damage: 1.32, color: 0x7ee46d, cooldown: 1950 },
-      dragon: { name: 'Dragon Claw Combo', range: 205, spread: 1.55, warning: 600, damage: 1.35, color: 0xff8253, cooldown: 1800 },
-      golem: { name: 'Runestone Fist', range: 145, spread: 1.6, warning: 600, damage: 1.25, color: 0xd5b777, cooldown: 1900 },
-      vampire: { name: 'Crimson Rake', range: 135, spread: 1.3, warning: 400, damage: 1.16, color: 0xe45b83, cooldown: 1550 },
-      darkMage: { name: 'Grave Scythe', range: 150, spread: 1.45, warning: 540, damage: 1.2, color: 0x9d7af0, cooldown: 1800 },
+      rooster: { name: 'Talon Peck Combo', range: 138, spread: 1.35, warning: 430, damage: 1.18, color: 0xffbd69, cooldown: 1320 },
+      troll: { name: 'Club Swing', range: 150, spread: 1.65, warning: 620, damage: 1.28, color: 0xb8d77a, cooldown: 1520 },
+      minotaur: { name: 'Axe and Horn Combo', range: 155, spread: 1.5, warning: 520, damage: 1.3, color: 0xf0b46c, cooldown: 1400 },
+      werewolf: { name: 'Moonclaw Combo', range: 140, spread: 1.35, warning: 360, damage: 1.12, color: 0xcf9bff, cooldown: 1160 },
+      wyvern: { name: 'Bite and Wing Bash', range: 160, spread: 1.55, warning: 520, damage: 1.22, color: 0xff9a62, cooldown: 1440 },
+      ancientBeast: { name: 'Ancient Claw', range: 185, spread: 1.55, warning: 650, damage: 1.32, color: 0x7ee46d, cooldown: 1560 },
+      dragon: { name: 'Dragon Claw Combo', range: 205, spread: 1.55, warning: 600, damage: 1.35, color: 0xff8253, cooldown: 1440 },
+      golem: { name: 'Runestone Fist', range: 145, spread: 1.6, warning: 600, damage: 1.25, color: 0xd5b777, cooldown: 1520 },
+      vampire: { name: 'Crimson Rake', range: 135, spread: 1.3, warning: 400, damage: 1.16, color: 0xe45b83, cooldown: 1240 },
+      darkMage: { name: 'Grave Scythe', range: 150, spread: 1.45, warning: 540, damage: 1.2, color: 0x9d7af0, cooldown: 1440 },
     };
     const profile = profiles[this.kind];
     this.announceAttack(profile.name, profile.color);
@@ -783,7 +783,7 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
   private scheduleNextAttack(time: number, multiplier = 1): void {
     const tuning = BOSS_BALANCE[this.kind];
     const cadence = this.phase >= 2 ? tuning.enragedCadence : tuning.cadence;
-    const minimum = this.kind === 'ancientBeast' || this.kind === 'dragon' ? 2200 : 1600;
+    const minimum = this.kind === 'ancientBeast' || this.kind === 'dragon' ? 1650 : 1100;
     this.nextAttackAt = time + Math.max(minimum, cadence * multiplier);
   }
 
