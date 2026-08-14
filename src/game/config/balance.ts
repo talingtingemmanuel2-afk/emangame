@@ -68,15 +68,15 @@ export interface WaveTuning {
 }
 
 export const WAVE_TUNING: Record<number, WaveTuning> = {
-  1: { spawnIntervalMs: 980, spawnGroupMin: 1, spawnGroupMax: 2, maxActiveEnemies: 48, maxRangedAttackers: 3, bossAtSeconds: 52 },
-  2: { spawnIntervalMs: 850, spawnGroupMin: 2, spawnGroupMax: 3, maxActiveEnemies: 62, maxRangedAttackers: 4, bossAtSeconds: 54 },
-  3: { spawnIntervalMs: 740, spawnGroupMin: 3, spawnGroupMax: 4, maxActiveEnemies: 76, maxRangedAttackers: 5, bossAtSeconds: 56 },
-  4: { spawnIntervalMs: 650, spawnGroupMin: 4, spawnGroupMax: 4, maxActiveEnemies: 90, maxRangedAttackers: 6, bossAtSeconds: 58 },
+  1: { spawnIntervalMs: 920, spawnGroupMin: 2, spawnGroupMax: 3, maxActiveEnemies: 54, maxRangedAttackers: 3, bossAtSeconds: 52 },
+  2: { spawnIntervalMs: 800, spawnGroupMin: 3, spawnGroupMax: 4, maxActiveEnemies: 68, maxRangedAttackers: 4, bossAtSeconds: 54 },
+  3: { spawnIntervalMs: 690, spawnGroupMin: 4, spawnGroupMax: 5, maxActiveEnemies: 82, maxRangedAttackers: 5, bossAtSeconds: 56 },
+  4: { spawnIntervalMs: 600, spawnGroupMin: 5, spawnGroupMax: 6, maxActiveEnemies: 96, maxRangedAttackers: 6, bossAtSeconds: 58 },
   5: { spawnIntervalMs: 0, spawnGroupMin: 0, spawnGroupMax: 0, maxActiveEnemies: 0, maxRangedAttackers: 4, bossAtSeconds: 4 },
-  6: { spawnIntervalMs: 680, spawnGroupMin: 4, spawnGroupMax: 4, maxActiveEnemies: 100, maxRangedAttackers: 7, bossAtSeconds: 58 },
-  7: { spawnIntervalMs: 570, spawnGroupMin: 4, spawnGroupMax: 5, maxActiveEnemies: 112, maxRangedAttackers: 8, bossAtSeconds: 59 },
-  8: { spawnIntervalMs: 480, spawnGroupMin: 5, spawnGroupMax: 6, maxActiveEnemies: 126, maxRangedAttackers: 9, bossAtSeconds: 60 },
-  9: { spawnIntervalMs: 410, spawnGroupMin: 6, spawnGroupMax: 8, maxActiveEnemies: 138, maxRangedAttackers: 10, bossAtSeconds: 61 },
+  6: { spawnIntervalMs: 620, spawnGroupMin: 5, spawnGroupMax: 6, maxActiveEnemies: 108, maxRangedAttackers: 7, bossAtSeconds: 58 },
+  7: { spawnIntervalMs: 520, spawnGroupMin: 6, spawnGroupMax: 7, maxActiveEnemies: 120, maxRangedAttackers: 8, bossAtSeconds: 59 },
+  8: { spawnIntervalMs: 440, spawnGroupMin: 7, spawnGroupMax: 8, maxActiveEnemies: 132, maxRangedAttackers: 9, bossAtSeconds: 60 },
+  9: { spawnIntervalMs: 380, spawnGroupMin: 8, spawnGroupMax: 10, maxActiveEnemies: 140, maxRangedAttackers: 10, bossAtSeconds: 61 },
   10: { spawnIntervalMs: 0, spawnGroupMin: 0, spawnGroupMax: 0, maxActiveEnemies: 0, maxRangedAttackers: 6, bossAtSeconds: 4 },
 };
 
@@ -109,6 +109,7 @@ export const BOSS_SCALING = {
   phaseBurstMoveSpeedMultiplier: 1.18,
   infernoCooldownMs: 14_000,
   infernoRecoveryMs: 5200,
+  skillCooldownMultiplier: 0.78,
 } as const;
 
 // Offensive skill cadence is intentionally per-ability. `base` is the level-1

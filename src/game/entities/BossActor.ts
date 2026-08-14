@@ -828,8 +828,8 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
   private scheduleNextAttack(time: number, multiplier = 1): void {
     const tuning = BOSS_BALANCE[this.kind];
     const cadence = this.phase >= 2 ? tuning.enragedCadence : tuning.cadence;
-    const minimum = this.kind === 'ancientBeast' ? 1250 : this.kind === 'dragon' ? (this.phase < 3 ? 900 : 1050) : 950;
-    this.nextAttackAt = time + Math.max(minimum, cadence * multiplier);
+    const minimum = this.kind === 'ancientBeast' ? 750 : this.kind === 'dragon' ? (this.phase < 3 ? 650 : 750) : 750;
+    this.nextAttackAt = time + Math.max(minimum, cadence * multiplier * BOSS_SCALING.skillCooldownMultiplier);
   }
 
   onObstacleCollision(): void {

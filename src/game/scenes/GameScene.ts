@@ -347,8 +347,8 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
     }
   }
 
-  spawnBoss(kind: BossKind): BossActor | null {
-    if (this.bosses.countActive(true) > 0) return null;
+  spawnBoss(kind: BossKind, allowAdditional = false, announce = true): BossActor | null {
+    if (!allowAdditional && this.bosses.countActive(true) > 0) return null;
     const boss = this.bosses.get(-100, -100) as BossActor | null;
     if (!boss) return null;
     const position = this.offscreenSpawnPoint(kind === 'dragon' ? 680 : 560);
@@ -360,7 +360,7 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
       werewolf: 'THE BLOOD MOON HUNTS', wyvern: 'WINGS IGNITE THE SKY',
       vampire: 'THE NIGHT QUEEN THIRSTS', darkMage: 'THE GRAVE ANSWERS ITS MASTER',
     };
-    this.showBossTitle(kind === 'dragon' ? 'ANCIENT FOREST DRAGON' : ancient ? 'ANCIENT BEAST' : boss.displayName, kind === 'dragon' ? 'THE FINAL FLAME AWAKENS' : ancient ? 'ROTTEN WINGS ECLIPSE THE GROVE' : subtitles[kind] ?? 'MINIBOSS');
+    if (announce) this.showBossTitle(kind === 'dragon' ? 'ANCIENT FOREST DRAGON' : ancient ? 'ANCIENT BEAST' : boss.displayName, kind === 'dragon' ? 'TWIN FINAL FLAMES AWAKEN' : ancient ? 'TWIN ROTTEN WINGS ECLIPSE THE GROVE' : subtitles[kind] ?? 'MINIBOSS');
     this.audio.crossfade(kind === 'dragon' || ancient ? 'dragon' : 'boss', 900);
     if (kind === 'dragon' || ancient) {
       this.playSfx('dragon-roar', 0.9);
@@ -382,11 +382,18 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
     const isDragon = boss.kind === 'dragon';
     const isBeast = boss.kind === 'ancientBeast';
     boss.retire();
-    this.currentBoss = null;
     this.run.bossesDefeated += 1;
-    this.hud.hideBoss();
     this.burst(x, y, isDragon ? 0xffd46f : isBeast ? 0x63df70 : 0xb99cff, isDragon || isBeast ? 36 : 24, isDragon || isBeast ? 270 : 180);
     this.cameras.main.shake(isDragon || isBeast ? 1000 : 420, isDragon || isBeast ? 0.02 : 0.008);
+    const remainingBoss = this.bosses.getChildren().find((object) => (object as BossActor).active) as BossActor | undefined;
+    if (remainingBoss) {
+      this.currentBoss = remainingBoss;
+      this.bossHealthChanged(remainingBoss);
+      this.floatingText(remainingBoss.x, remainingBoss.y - 90, 'ONE BOSS REMAINS!', '#fff0a8', true);
+      return;
+    }
+    this.currentBoss = null;
+    this.hud.hideBoss();
     if (isDragon) {
       this.winRun(x, y);
     } else if (isBeast) {
@@ -799,7 +806,11 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
     }
     if (!this.minibossSpawned && elapsed >= bossThreshold) {
       this.minibossSpawned = true;
-      this.spawnBoss(this.bossForWave(this.wave));
+      const kind = this.bossForWave(this.wave);
+      if (this.wave === 5 || this.wave === 10) {
+        this.spawnBoss(kind, false, true);
+        this.spawnBoss(kind, true, false);
+      } else this.spawnBoss(kind);
     }
     if (this.minibossDefeated && this.transitionAt > 0 && time >= this.transitionAt) {
       if (this.wave < WAVES.total) this.startWave(this.wave + 1);
