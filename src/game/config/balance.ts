@@ -90,16 +90,16 @@ export interface BossTuning {
 }
 
 export const BOSS_BALANCE: Record<BossKind, BossTuning> = {
-  golem:        { hp: 1700, damage: 16, hitboxRadius: 40, moveSpeed: 68, cadence: 2100, enragedCadence: 1600 },
-  vampire:      { hp: 4300, damage: 19, hitboxRadius: 36, moveSpeed: 112, cadence: 1850, enragedCadence: 1350 },
-  darkMage:     { hp: 4650, damage: 20, hitboxRadius: 36, moveSpeed: 84, cadence: 1900, enragedCadence: 1420 },
-  rooster:      { hp: 3700, damage: 17, hitboxRadius: 34, moveSpeed: 114, cadence: 1700, enragedCadence: 1250 },
-  troll:        { hp: 3600, damage: 19, hitboxRadius: 42, moveSpeed: 58, cadence: 2300, enragedCadence: 1700 },
-  werewolf:     { hp: 2900, damage: 16, hitboxRadius: 38, moveSpeed: 136, cadence: 1650, enragedCadence: 1220 },
-  minotaur:     { hp: 4200, damage: 18, hitboxRadius: 40, moveSpeed: 74, cadence: 2020, enragedCadence: 1520 },
-  wyvern:       { hp: 5200, damage: 17, hitboxRadius: 40, moveSpeed: 102, cadence: 2150, enragedCadence: 1620 },
-  ancientBeast: { hp: 12_500, damage: 23, hitboxRadius: 52, moveSpeed: 64, cadence: 2300, enragedCadence: 1750 },
-  dragon:       { hp: 25_000, damage: 25, hitboxRadius: 58, moveSpeed: 84, cadence: 2200, enragedCadence: 1550 },
+  golem:        { hp: 2200, damage: 18, hitboxRadius: 40, moveSpeed: 72, cadence: 1850, enragedCadence: 1380 },
+  vampire:      { hp: 5500, damage: 22, hitboxRadius: 36, moveSpeed: 118, cadence: 1600, enragedCadence: 1150 },
+  darkMage:     { hp: 5900, damage: 23, hitboxRadius: 36, moveSpeed: 90, cadence: 1650, enragedCadence: 1200 },
+  rooster:      { hp: 4700, damage: 20, hitboxRadius: 34, moveSpeed: 120, cadence: 1480, enragedCadence: 1080 },
+  troll:        { hp: 4600, damage: 22, hitboxRadius: 42, moveSpeed: 64, cadence: 1980, enragedCadence: 1450 },
+  werewolf:     { hp: 3700, damage: 19, hitboxRadius: 38, moveSpeed: 142, cadence: 1420, enragedCadence: 1050 },
+  minotaur:     { hp: 5400, damage: 21, hitboxRadius: 40, moveSpeed: 80, cadence: 1750, enragedCadence: 1300 },
+  wyvern:       { hp: 6600, damage: 20, hitboxRadius: 40, moveSpeed: 108, cadence: 1850, enragedCadence: 1380 },
+  ancientBeast: { hp: 20_000, damage: 30, hitboxRadius: 52, moveSpeed: 72, cadence: 1800, enragedCadence: 1280 },
+  dragon:       { hp: 40_000, damage: 34, hitboxRadius: 58, moveSpeed: 94, cadence: 1550, enragedCadence: 1050 },
 };
 
 export const BOSS_SCALING = {

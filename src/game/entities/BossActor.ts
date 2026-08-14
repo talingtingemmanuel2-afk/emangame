@@ -81,6 +81,7 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
   private leavingFireTrail = false;
   private ultimateUsed = false;
   private dragonSecondHealthBarUsed = false;
+  private phaseTransitionInvulnerableUntil = 0;
   private nextTrailAt = 0;
   private visualAlpha = 1;
   private readonly shadow: Phaser.GameObjects.Ellipse;
@@ -134,6 +135,7 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
     this.leavingFireTrail = false;
     this.ultimateUsed = false;
     this.dragonSecondHealthBarUsed = false;
+    this.phaseTransitionInvulnerableUntil = 0;
     this.visualAlpha = 1;
     this.lastAttack = 'Entrance';
     this.attacksUsed.clear();
@@ -209,8 +211,8 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
   }
 
   takeDamage(amount: number, options: DamageOptions = {}): boolean {
-    if (!this.active || this.hp <= 0) return false;
-    const adjusted = this.kind === 'dragon' ? amount * 0.9 : this.kind === 'ancientBeast' ? amount * 0.94 : this.kind === 'minotaur' && this.phase >= 2 ? amount * 1.18 : amount;
+    if (!this.active || this.hp <= 0 || this.scene.time.now < this.phaseTransitionInvulnerableUntil) return false;
+    const adjusted = this.kind === 'dragon' ? amount * 0.82 : this.kind === 'ancientBeast' ? amount * 0.88 : this.kind === 'minotaur' && this.phase >= 2 ? amount * 1.18 : amount;
     this.hp -= adjusted;
     if (this.regenUntil > this.scene.time.now) {
       this.regenDamage += adjusted;
@@ -235,6 +237,10 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
       options.critical,
     );
     this.host.burst(this.x, this.y, options.tint ?? 0x9bf3ce, options.critical ? 10 : 5, 90);
+    if (this.hp <= 0 && this.kind === 'dragon' && this.phase === 1 && !this.dragonSecondHealthBarUsed) {
+      this.beginDragonSecondLife();
+      return false;
+    }
     this.host.bossHealthChanged(this);
     if (this.hp <= 0) {
       this.hp = 0;
@@ -271,18 +277,12 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
     const calculatedPhase = this.kind === 'ancientBeast'
       ? (ratio > 0.5 ? 1 : ratio > 0.2 ? 2 : 3)
       : this.kind === 'dragon'
-        ? (ratio > 0.65 ? 1 : ratio > 0.3 ? 2 : 3)
+        ? (!this.dragonSecondHealthBarUsed ? 1 : ratio > 0.3 ? 2 : 3)
       : (ratio > (this.kind === 'rooster' ? 0.35 : this.kind === 'minotaur' ? 0.3 : 0.4) ? 1 : 2);
     const nextPhase = Math.max(this.phase, calculatedPhase);
     if (nextPhase !== this.phase) {
       this.phase = nextPhase;
-      if (this.kind === 'dragon' && this.phase === 2 && !this.dragonSecondHealthBarUsed) {
-        this.dragonSecondHealthBarUsed = true;
-        this.hp = this.maxHp;
-        this.damage = Math.round(this.damage * 1.3);
-        this.host.floatingText(this.x, this.y - 88, 'SECOND HEALTH BAR RESTORED!', '#fff0a8', true);
-        this.host.burst(this.x, this.y, 0xff713f, 48, 240);
-      } else if (this.kind === 'dragon' && this.phase === 3) this.damage = Math.round(this.damage * 1.15);
+      if (this.kind === 'dragon' && this.phase === 3) this.damage = Math.round(this.damage * 1.15);
       this.attackBuffUntil = this.scene.time.now + (this.kind === 'werewolf' ? 7500 : 3200);
       this.host.burst(this.x, this.y, BOSS_COLORS[this.kind], 32, 190);
       this.scene.cameras.main.shake(360, 0.009);
@@ -298,6 +298,27 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
       this.host.bossHealthChanged(this);
     }
     if (this.kind === 'troll' && ratio < 0.62 && !this.regenUsed) this.beginTrollRegen();
+  }
+
+  private beginDragonSecondLife(): void {
+    const time = this.scene.time.now;
+    this.dragonSecondHealthBarUsed = true;
+    this.phase = 2;
+    this.hp = this.maxHp;
+    this.damage = Math.round(this.damage * 1.3);
+    this.phaseTransitionInvulnerableUntil = time + 1800;
+    this.enteringUntil = time + 1800;
+    this.recoverUntil = time + 2100;
+    this.nextAttackAt = time + 2200;
+    this.setVelocity(0).setTint(0xff805a);
+    this.aura.setStrokeStyle(5, 0xff7045, 0.72);
+    this.host.floatingText(this.x, this.y - 92, 'DEATH DENIED — PHASE II!', '#fff0a8', true);
+    this.host.floatingText(this.x, this.y - 68, 'FULL HEALTH RESTORED', '#ff9a64', true);
+    this.host.burst(this.x, this.y, 0xff713f, 58, 280);
+    this.host.playSfx('dragon-roar', 1);
+    this.scene.cameras.main.flash(420, 155, 42, 18);
+    this.scene.cameras.main.shake(620, 0.018);
+    this.host.bossHealthChanged(this);
   }
 
   private performAttack(time: number, direction: Phaser.Math.Vector2, distance: number): void {
@@ -807,7 +828,7 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
   private scheduleNextAttack(time: number, multiplier = 1): void {
     const tuning = BOSS_BALANCE[this.kind];
     const cadence = this.phase >= 2 ? tuning.enragedCadence : tuning.cadence;
-    const minimum = this.kind === 'ancientBeast' ? 1650 : this.kind === 'dragon' ? (this.phase < 3 ? 1150 : 1500) : 1100;
+    const minimum = this.kind === 'ancientBeast' ? 1250 : this.kind === 'dragon' ? (this.phase < 3 ? 900 : 1050) : 950;
     this.nextAttackAt = time + Math.max(minimum, cadence * multiplier);
   }
 
