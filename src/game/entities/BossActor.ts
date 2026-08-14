@@ -322,7 +322,7 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
       werewolf: { name: 'Moonclaw Combo', range: 140, spread: 1.35, warning: 360, damage: 1.12, color: 0xcf9bff, cooldown: 1160 },
       wyvern: { name: 'Bite and Wing Bash', range: 160, spread: 1.55, warning: 520, damage: 1.22, color: 0xff9a62, cooldown: 1440 },
       ancientBeast: { name: 'Ancient Claw', range: 185, spread: 1.55, warning: 650, damage: 1.32, color: 0x7ee46d, cooldown: 1560 },
-      dragon: { name: 'Dragon Claw Combo', range: 205, spread: 1.55, warning: 600, damage: 1.35, color: 0xff8253, cooldown: 1440 },
+      dragon: { name: 'Dragon Claw Combo', range: 205, spread: 1.55, warning: 520, damage: 1.35, color: 0xff8253, cooldown: 1000 },
       golem: { name: 'Runestone Fist', range: 145, spread: 1.6, warning: 600, damage: 1.25, color: 0xd5b777, cooldown: 1520 },
       vampire: { name: 'Crimson Rake', range: 135, spread: 1.3, warning: 400, damage: 1.16, color: 0xe45b83, cooldown: 1240 },
       darkMage: { name: 'Grave Scythe', range: 150, spread: 1.45, warning: 540, damage: 1.2, color: 0x9d7af0, cooldown: 1440 },
@@ -688,9 +688,9 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
 
   private dragonAttack(time: number, direction: Phaser.Math.Vector2, distance: number): void {
     const player = this.host.player;
-    type DragonAttack = 'fireball' | 'claw' | 'tail' | 'breath' | 'charge' | 'hurricane' | 'skyfall' | 'flameWall' | 'eruption' | 'hunting' | 'flameClaws' | 'meteor' | 'roar' | 'rush';
-    const pool: DragonAttack[] = ['claw', 'tail', 'breath', 'fireball', 'charge', 'hurricane'];
-    if (this.phase >= 2) pool.push('skyfall', 'flameWall', 'eruption', 'hunting', 'flameClaws');
+    type DragonAttack = 'fireball' | 'claw' | 'tail' | 'breath' | 'charge' | 'hurricane' | 'wildfire' | 'skyfall' | 'flameWall' | 'eruption' | 'hunting' | 'flameClaws' | 'meteor' | 'roar' | 'rush';
+    const pool: DragonAttack[] = ['claw', 'charge', 'fireball', 'breath', 'hurricane', 'wildfire', 'tail'];
+    if (this.phase >= 2) pool.push('charge', 'skyfall', 'flameWall', 'eruption', 'hunting', 'flameClaws', 'wildfire');
     if (this.phase >= 3) pool.push('meteor', 'roar', 'rush');
     if (this.phase === 3 && !this.ultimateUsed && this.hp / this.maxHp < 0.22 && time - this.lastInfernoAt > BOSS_SCALING.infernoCooldownMs) {
       this.ultimateUsed = true;
@@ -740,6 +740,20 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
       for (let i = -2; i <= 2; i += 1) if (i !== 0) this.host.createMovingHazard(this.x, this.y, direction.clone().rotate(i * 0.28).scale(90), this.damage * 0.65);
       if (distance < 260) this.host.pushPlayerFrom(this.x, this.y, 90);
       this.recoverUntil = time + 1500;
+    } else if (attack === 'wildfire') {
+      this.announceAttack('All-Realm Flame Barrage', 0xff4f2f);
+      this.host.playSfx('fire', 0.86);
+      const gap = this.attackIndex % 4;
+      for (let row = -2; row <= 2; row += 1) {
+        for (let column = -3; column <= 3; column += 1) {
+          if ((column + row + 12) % 4 === gap || (Math.abs(column) <= 1 && row === 0)) continue;
+          const x = player.x + column * 105;
+          const y = player.y + row * 88;
+          this.host.createDangerCircle(x, y, 43, 1050 + (Math.abs(row) + Math.abs(column)) * 45, this.damage * 0.72, 0xff4f2f);
+        }
+      }
+      this.host.floatingText(player.x, player.y - 95, 'FOLLOW THE OPEN FLAME LANE!', '#fff0a8', true);
+      this.recoverUntil = time + 2450;
     } else if (attack === 'skyfall') {
       this.announceAttack('Skyfall', 0xffbd73);
       const x = player.x + Phaser.Math.Between(-55, 55); const y = player.y + Phaser.Math.Between(-55, 55);
@@ -774,7 +788,7 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
       this.scene.time.delayedCall(1600, () => this.active && this.host.fireEnemyProjectile(this.x, this.y, player.x, player.y, { texture: 'projectile-fireball', speed: 330, damage: this.damage, spread: 0.2, count: 3, scale: 1.1 }));
     }
     const cadenceMultiplier: Record<DragonAttack, number> = {
-      fireball: 0.9, claw: 0.9, tail: 1, breath: 1.2, charge: 1.25, hurricane: 1.1,
+      fireball: 0.9, claw: 0.75, tail: 1, breath: 1.2, charge: 0.78, hurricane: 1.1, wildfire: 1.35,
       skyfall: 1.55, flameWall: 1.35, eruption: 1.45, hunting: 1.05, flameClaws: 1.2, meteor: 1.7, roar: 1.25, rush: 1.65,
     };
     this.scheduleNextAttack(time, cadenceMultiplier[attack]);
@@ -783,7 +797,7 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
   private scheduleNextAttack(time: number, multiplier = 1): void {
     const tuning = BOSS_BALANCE[this.kind];
     const cadence = this.phase >= 2 ? tuning.enragedCadence : tuning.cadence;
-    const minimum = this.kind === 'ancientBeast' || this.kind === 'dragon' ? 1650 : 1100;
+    const minimum = this.kind === 'ancientBeast' ? 1650 : this.kind === 'dragon' ? (this.phase < 3 ? 1150 : 1500) : 1100;
     this.nextAttackAt = time + Math.max(minimum, cadence * multiplier);
   }
 

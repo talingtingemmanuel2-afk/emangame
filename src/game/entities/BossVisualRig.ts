@@ -220,6 +220,30 @@ const RIG_SPECS: Record<BossKind, RigSpec> = {
   },
 };
 
+// The Final Dragon begins as an upright dragon warrior. Every limb is a
+// separate reusable pixel part so melee, dashes, and phase changes read as a
+// creature rather than a scaled collision shape. Phase 3 restores the full
+// quadruped dragon rig above.
+const DRAGON_HUMANOID_SPEC: RigSpec = {
+  scale: 2.05, width: 196, height: 236, bodyRadius: 50,
+  shadowWidth: 132, shadowHeight: 32, shadowOffsetY: 106, airborne: false,
+  parts: [
+    part('tail', 'rig-dragon-tail', 'tail1', -31, 30, { originX: 0.92, originY: 0.5, scaleX: 0.9, scaleY: 0.9, angle: 24 }),
+    part('farWing', 'rig-dragon-wing', 'wingLeft', -17, -20, { originX: 0.86, originY: 0.82, scaleX: 0.56, scaleY: 0.62, flipX: true, angle: -15, alpha: 0.8 }),
+    part('leftLeg', 'rig-dragon-rear-leg', 'legLeft', -15, 24, { originX: 0.5, originY: 0.08, angle: 3 }),
+    part('rightLeg', 'rig-dragon-rear-leg', 'legRight', 15, 24, { originX: 0.5, originY: 0.08, flipX: true, angle: -3 }),
+    part('body', 'rig-dragon-body', 'body', 0, -9, { scaleX: 0.72, scaleY: 1.05 }),
+    part('nearWing', 'rig-dragon-wing', 'wingRight', 17, -20, { originX: 0.14, originY: 0.82, scaleX: 0.56, scaleY: 0.62, angle: 15, alpha: 0.9 }),
+    part('leftArm', 'rig-dragon-foreleg', 'armLeft', -29, -10, { originX: 0.5, originY: 0.08, scaleX: 1.15, scaleY: 1.2, flipX: true, angle: 16 }),
+    part('rightArm', 'rig-dragon-foreleg', 'armRight', 29, -10, { originX: 0.5, originY: 0.08, scaleX: 1.15, scaleY: 1.2, angle: -16 }),
+    part('neck', 'rig-dragon-neck', 'neck', 0, -38, { originX: 0.5, originY: 0.7, scaleX: 0.7, scaleY: 0.82, angle: -90 }),
+    part('head', 'rig-dragon-head', 'head', 0, -54, { originX: 0.5, originY: 0.58, scaleX: 0.9, scaleY: 0.95 }),
+    part('jaw', 'rig-dragon-jaw', 'jaw', 7, -43, { originX: 0.18, originY: 0.2, scaleX: 0.75, scaleY: 0.82 }),
+    part('leftHorn', 'rig-dragon-horn', 'hornLeft', -12, -67, { originX: 0.82, originY: 0.84, scaleX: 0.82, scaleY: 0.82, flipX: true, angle: -25 }),
+    part('rightHorn', 'rig-dragon-horn', 'hornRight', 12, -67, { originX: 0.82, originY: 0.84, scaleX: 0.82, scaleY: 0.82, angle: 25 }),
+  ],
+};
+
 const clamp01 = (value: number): number => Phaser.Math.Clamp(value, 0, 1);
 
 export class BossVisualRig {
@@ -255,7 +279,7 @@ export class BossVisualRig {
     if (this.destroyed) return this;
     const kindChanged = kind !== this.kind || this.parts.length === 0;
     this.kind = kind;
-    this.spec = RIG_SPECS[kind];
+    this.spec = kind === 'dragon' ? DRAGON_HUMANOID_SPEC : RIG_SPECS[kind];
     this.scaleMultiplier = Math.max(0.35, visualScale);
     if (kindChanged) this.buildParts();
     this.resetPose();
@@ -281,6 +305,13 @@ export class BossVisualRig {
     state: BossVisualState | string = 'normal',
   ): this {
     if (this.destroyed || !this.container.visible) return this;
+    if (this.kind === 'dragon') {
+      const desiredSpec = phase >= 3 ? RIG_SPECS.dragon : DRAGON_HUMANOID_SPEC;
+      if (this.spec !== desiredSpec) {
+        this.spec = desiredSpec;
+        this.buildParts();
+      }
+    }
     const moved = Number.isFinite(this.lastX)
       ? Phaser.Math.Clamp(Math.hypot(x - this.lastX, y - this.lastY) * 0.55, 0, 1)
       : 0;
