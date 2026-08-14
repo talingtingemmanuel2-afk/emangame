@@ -20,7 +20,7 @@ export const COMBAT = {
   projectileSpeed: 520,
   criticalChance: 0.08,
   criticalMultiplier: 1.85,
-  maxEnemies: 110,
+  maxEnemies: 140,
   maxProjectiles: 96,
   maxGems: 180,
   playerAbilityDamageMultiplier: 1.16,
@@ -28,27 +28,27 @@ export const COMBAT = {
 } as const;
 
 export const ENEMY_BALANCE = {
-  hpPerWave: 0.10,
-  damagePerWave: 0.034,
-  speedPerWave: 0.022,
-  attackCooldownPerWave: 0.024,
-  minimumAttackCooldownMultiplier: 0.76,
+  hpPerWave: 0.12,
+  damagePerWave: 0.045,
+  speedPerWave: 0.03,
+  attackCooldownPerWave: 0.032,
+  minimumAttackCooldownMultiplier: 0.68,
   xpPerWave: 0.045,
   eliteFirstWave: 2,
   eliteBaseChance: 0,
-  eliteChancePerWave: 0.022,
-  eliteMaxChance: 0.24,
-  eliteHpMultiplier: 1.9,
-  armoredHpMultiplier: 2.45,
-  eliteDamageMultiplier: 1.2,
+  eliteChancePerWave: 0.03,
+  eliteMaxChance: 0.32,
+  eliteHpMultiplier: 2.2,
+  armoredHpMultiplier: 2.8,
+  eliteDamageMultiplier: 1.35,
   eliteXpMultiplier: 2.3,
   separationRadius: 34,
   separationStrength: 0.48,
   maxRangedAttackers: 6,
   rangedAttackLeaseMs: 1250,
-  maxEnemyProjectiles: 96,
-  maxDangerWarnings: 24,
-  contactCooldownMs: 760,
+  maxEnemyProjectiles: 112,
+  maxDangerWarnings: 28,
+  contactCooldownMs: 660,
 } as const;
 
 export const SPAWN_BALANCE = {
@@ -68,15 +68,15 @@ export interface WaveTuning {
 }
 
 export const WAVE_TUNING: Record<number, WaveTuning> = {
-  1: { spawnIntervalMs: 1080, spawnGroupMin: 1, spawnGroupMax: 1, maxActiveEnemies: 42, maxRangedAttackers: 2, bossAtSeconds: 52 },
-  2: { spawnIntervalMs: 940, spawnGroupMin: 2, spawnGroupMax: 2, maxActiveEnemies: 54, maxRangedAttackers: 3, bossAtSeconds: 54 },
-  3: { spawnIntervalMs: 820, spawnGroupMin: 2, spawnGroupMax: 3, maxActiveEnemies: 66, maxRangedAttackers: 4, bossAtSeconds: 56 },
-  4: { spawnIntervalMs: 720, spawnGroupMin: 3, spawnGroupMax: 3, maxActiveEnemies: 78, maxRangedAttackers: 5, bossAtSeconds: 58 },
+  1: { spawnIntervalMs: 980, spawnGroupMin: 1, spawnGroupMax: 2, maxActiveEnemies: 48, maxRangedAttackers: 3, bossAtSeconds: 52 },
+  2: { spawnIntervalMs: 850, spawnGroupMin: 2, spawnGroupMax: 3, maxActiveEnemies: 62, maxRangedAttackers: 4, bossAtSeconds: 54 },
+  3: { spawnIntervalMs: 740, spawnGroupMin: 3, spawnGroupMax: 4, maxActiveEnemies: 76, maxRangedAttackers: 5, bossAtSeconds: 56 },
+  4: { spawnIntervalMs: 650, spawnGroupMin: 4, spawnGroupMax: 4, maxActiveEnemies: 90, maxRangedAttackers: 6, bossAtSeconds: 58 },
   5: { spawnIntervalMs: 0, spawnGroupMin: 0, spawnGroupMax: 0, maxActiveEnemies: 0, maxRangedAttackers: 4, bossAtSeconds: 4 },
-  6: { spawnIntervalMs: 760, spawnGroupMin: 3, spawnGroupMax: 3, maxActiveEnemies: 84, maxRangedAttackers: 5, bossAtSeconds: 58 },
-  7: { spawnIntervalMs: 650, spawnGroupMin: 3, spawnGroupMax: 4, maxActiveEnemies: 92, maxRangedAttackers: 6, bossAtSeconds: 59 },
-  8: { spawnIntervalMs: 550, spawnGroupMin: 4, spawnGroupMax: 5, maxActiveEnemies: 102, maxRangedAttackers: 7, bossAtSeconds: 60 },
-  9: { spawnIntervalMs: 480, spawnGroupMin: 5, spawnGroupMax: 6, maxActiveEnemies: 110, maxRangedAttackers: 8, bossAtSeconds: 61 },
+  6: { spawnIntervalMs: 680, spawnGroupMin: 4, spawnGroupMax: 4, maxActiveEnemies: 100, maxRangedAttackers: 7, bossAtSeconds: 58 },
+  7: { spawnIntervalMs: 570, spawnGroupMin: 4, spawnGroupMax: 5, maxActiveEnemies: 112, maxRangedAttackers: 8, bossAtSeconds: 59 },
+  8: { spawnIntervalMs: 480, spawnGroupMin: 5, spawnGroupMax: 6, maxActiveEnemies: 126, maxRangedAttackers: 9, bossAtSeconds: 60 },
+  9: { spawnIntervalMs: 410, spawnGroupMin: 6, spawnGroupMax: 8, maxActiveEnemies: 138, maxRangedAttackers: 10, bossAtSeconds: 61 },
   10: { spawnIntervalMs: 0, spawnGroupMin: 0, spawnGroupMax: 0, maxActiveEnemies: 0, maxRangedAttackers: 6, bossAtSeconds: 4 },
 };
 
@@ -90,16 +90,16 @@ export interface BossTuning {
 }
 
 export const BOSS_BALANCE: Record<BossKind, BossTuning> = {
-  golem:        { hp: 1450, damage: 14, hitboxRadius: 40, moveSpeed: 68, cadence: 2350, enragedCadence: 1800 },
-  vampire:      { hp: 3700, damage: 17, hitboxRadius: 36, moveSpeed: 112, cadence: 2050, enragedCadence: 1500 },
-  darkMage:     { hp: 4000, damage: 18, hitboxRadius: 36, moveSpeed: 84, cadence: 2100, enragedCadence: 1580 },
-  rooster:      { hp: 3200, damage: 15, hitboxRadius: 34, moveSpeed: 114, cadence: 1900, enragedCadence: 1400 },
-  troll:        { hp: 3100, damage: 17, hitboxRadius: 42, moveSpeed: 58, cadence: 2550, enragedCadence: 1900 },
-  werewolf:     { hp: 2500, damage: 14, hitboxRadius: 38, moveSpeed: 136, cadence: 1850, enragedCadence: 1380 },
-  minotaur:     { hp: 3600, damage: 16, hitboxRadius: 40, moveSpeed: 74, cadence: 2250, enragedCadence: 1700 },
-  wyvern:       { hp: 4500, damage: 15, hitboxRadius: 40, moveSpeed: 102, cadence: 2400, enragedCadence: 1820 },
-  ancientBeast: { hp: 10_500, damage: 20, hitboxRadius: 52, moveSpeed: 64, cadence: 2550, enragedCadence: 1950 },
-  dragon:       { hp: 22_000, damage: 22, hitboxRadius: 58, moveSpeed: 84, cadence: 2450, enragedCadence: 1750 },
+  golem:        { hp: 1700, damage: 16, hitboxRadius: 40, moveSpeed: 68, cadence: 2100, enragedCadence: 1600 },
+  vampire:      { hp: 4300, damage: 19, hitboxRadius: 36, moveSpeed: 112, cadence: 1850, enragedCadence: 1350 },
+  darkMage:     { hp: 4650, damage: 20, hitboxRadius: 36, moveSpeed: 84, cadence: 1900, enragedCadence: 1420 },
+  rooster:      { hp: 3700, damage: 17, hitboxRadius: 34, moveSpeed: 114, cadence: 1700, enragedCadence: 1250 },
+  troll:        { hp: 3600, damage: 19, hitboxRadius: 42, moveSpeed: 58, cadence: 2300, enragedCadence: 1700 },
+  werewolf:     { hp: 2900, damage: 16, hitboxRadius: 38, moveSpeed: 136, cadence: 1650, enragedCadence: 1220 },
+  minotaur:     { hp: 4200, damage: 18, hitboxRadius: 40, moveSpeed: 74, cadence: 2020, enragedCadence: 1520 },
+  wyvern:       { hp: 5200, damage: 17, hitboxRadius: 40, moveSpeed: 102, cadence: 2150, enragedCadence: 1620 },
+  ancientBeast: { hp: 12_500, damage: 23, hitboxRadius: 52, moveSpeed: 64, cadence: 2300, enragedCadence: 1750 },
+  dragon:       { hp: 25_000, damage: 25, hitboxRadius: 58, moveSpeed: 84, cadence: 2200, enragedCadence: 1550 },
 };
 
 export const BOSS_SCALING = {
