@@ -794,7 +794,7 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
     const tuning = WAVE_TUNING[this.wave];
     const bossThreshold = tuning?.bossAtSeconds ?? WAVES.bossAtSeconds;
     if (tuning.spawnIntervalMs > 0 && !this.minibossSpawned && elapsed < bossThreshold - SPAWN_BALANCE.stopSpawningBeforeBossSeconds && time >= this.nextSpawnAt) {
-      this.spawnWaveEnemy();
+      this.spawnWaveEnemies(elapsed);
       this.nextSpawnAt = time + tuning.spawnIntervalMs;
     }
     if (!this.minibossSpawned && elapsed >= bossThreshold) {
@@ -804,6 +804,15 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
     if (this.minibossDefeated && this.transitionAt > 0 && time >= this.transitionAt) {
       if (this.wave < WAVES.total) this.startWave(this.wave + 1);
     }
+  }
+
+  private spawnWaveEnemies(elapsedSeconds: number): void {
+    const tuning = WAVE_TUNING[this.wave];
+    const recoveryOpening = this.wave === 6 && elapsedSeconds < 12;
+    const groupMin = recoveryOpening ? 1 : tuning.spawnGroupMin;
+    const groupMax = recoveryOpening ? 1 : tuning.spawnGroupMax;
+    const count = Phaser.Math.Between(groupMin, groupMax);
+    for (let i = 0; i < count; i += 1) this.spawnWaveEnemy();
   }
 
   private spawnWaveEnemy(): void {

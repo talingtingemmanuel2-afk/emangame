@@ -60,22 +60,24 @@ export const SPAWN_BALANCE = {
 
 export interface WaveTuning {
   spawnIntervalMs: number;
+  spawnGroupMin: number;
+  spawnGroupMax: number;
   maxActiveEnemies: number;
   maxRangedAttackers: number;
   bossAtSeconds: number;
 }
 
 export const WAVE_TUNING: Record<number, WaveTuning> = {
-  1: { spawnIntervalMs: 1260, maxActiveEnemies: 34, maxRangedAttackers: 2, bossAtSeconds: 52 },
-  2: { spawnIntervalMs: 1140, maxActiveEnemies: 42, maxRangedAttackers: 3, bossAtSeconds: 54 },
-  3: { spawnIntervalMs: 1020, maxActiveEnemies: 50, maxRangedAttackers: 4, bossAtSeconds: 56 },
-  4: { spawnIntervalMs: 900, maxActiveEnemies: 59, maxRangedAttackers: 4, bossAtSeconds: 58 },
-  5: { spawnIntervalMs: 0, maxActiveEnemies: 0, maxRangedAttackers: 4, bossAtSeconds: 4 },
-  6: { spawnIntervalMs: 930, maxActiveEnemies: 60, maxRangedAttackers: 5, bossAtSeconds: 58 },
-  7: { spawnIntervalMs: 790, maxActiveEnemies: 70, maxRangedAttackers: 5, bossAtSeconds: 59 },
-  8: { spawnIntervalMs: 690, maxActiveEnemies: 82, maxRangedAttackers: 6, bossAtSeconds: 60 },
-  9: { spawnIntervalMs: 610, maxActiveEnemies: 94, maxRangedAttackers: 7, bossAtSeconds: 61 },
-  10: { spawnIntervalMs: 0, maxActiveEnemies: 0, maxRangedAttackers: 6, bossAtSeconds: 4 },
+  1: { spawnIntervalMs: 1120, spawnGroupMin: 1, spawnGroupMax: 1, maxActiveEnemies: 38, maxRangedAttackers: 2, bossAtSeconds: 52 },
+  2: { spawnIntervalMs: 980, spawnGroupMin: 1, spawnGroupMax: 2, maxActiveEnemies: 48, maxRangedAttackers: 3, bossAtSeconds: 54 },
+  3: { spawnIntervalMs: 860, spawnGroupMin: 2, spawnGroupMax: 2, maxActiveEnemies: 58, maxRangedAttackers: 4, bossAtSeconds: 56 },
+  4: { spawnIntervalMs: 760, spawnGroupMin: 2, spawnGroupMax: 3, maxActiveEnemies: 70, maxRangedAttackers: 5, bossAtSeconds: 58 },
+  5: { spawnIntervalMs: 0, spawnGroupMin: 0, spawnGroupMax: 0, maxActiveEnemies: 0, maxRangedAttackers: 4, bossAtSeconds: 4 },
+  6: { spawnIntervalMs: 820, spawnGroupMin: 2, spawnGroupMax: 2, maxActiveEnemies: 68, maxRangedAttackers: 5, bossAtSeconds: 58 },
+  7: { spawnIntervalMs: 690, spawnGroupMin: 2, spawnGroupMax: 3, maxActiveEnemies: 82, maxRangedAttackers: 6, bossAtSeconds: 59 },
+  8: { spawnIntervalMs: 590, spawnGroupMin: 3, spawnGroupMax: 4, maxActiveEnemies: 96, maxRangedAttackers: 7, bossAtSeconds: 60 },
+  9: { spawnIntervalMs: 520, spawnGroupMin: 4, spawnGroupMax: 5, maxActiveEnemies: 108, maxRangedAttackers: 8, bossAtSeconds: 61 },
+  10: { spawnIntervalMs: 0, spawnGroupMin: 0, spawnGroupMax: 0, maxActiveEnemies: 0, maxRangedAttackers: 6, bossAtSeconds: 4 },
 };
 
 export interface BossTuning {
