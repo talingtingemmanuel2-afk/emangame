@@ -80,6 +80,7 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
   private dying = false;
   private leavingFireTrail = false;
   private ultimateUsed = false;
+  private dragonSecondHealthBarUsed = false;
   private nextTrailAt = 0;
   private visualAlpha = 1;
   private readonly shadow: Phaser.GameObjects.Ellipse;
@@ -132,6 +133,7 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
     this.dying = false;
     this.leavingFireTrail = false;
     this.ultimateUsed = false;
+    this.dragonSecondHealthBarUsed = false;
     this.visualAlpha = 1;
     this.lastAttack = 'Entrance';
     this.attacksUsed.clear();
@@ -266,13 +268,21 @@ export class BossActor extends Phaser.Physics.Arcade.Sprite {
 
   private updatePhase(): void {
     const ratio = this.hp / this.maxHp;
-    const nextPhase = this.kind === 'ancientBeast'
+    const calculatedPhase = this.kind === 'ancientBeast'
       ? (ratio > 0.5 ? 1 : ratio > 0.2 ? 2 : 3)
       : this.kind === 'dragon'
         ? (ratio > 0.65 ? 1 : ratio > 0.3 ? 2 : 3)
-        : (ratio > (this.kind === 'rooster' ? 0.35 : this.kind === 'minotaur' ? 0.3 : 0.4) ? 1 : 2);
+      : (ratio > (this.kind === 'rooster' ? 0.35 : this.kind === 'minotaur' ? 0.3 : 0.4) ? 1 : 2);
+    const nextPhase = Math.max(this.phase, calculatedPhase);
     if (nextPhase !== this.phase) {
       this.phase = nextPhase;
+      if (this.kind === 'dragon' && this.phase === 2 && !this.dragonSecondHealthBarUsed) {
+        this.dragonSecondHealthBarUsed = true;
+        this.hp = this.maxHp;
+        this.damage = Math.round(this.damage * 1.3);
+        this.host.floatingText(this.x, this.y - 88, 'SECOND HEALTH BAR RESTORED!', '#fff0a8', true);
+        this.host.burst(this.x, this.y, 0xff713f, 48, 240);
+      } else if (this.kind === 'dragon' && this.phase === 3) this.damage = Math.round(this.damage * 1.15);
       this.attackBuffUntil = this.scene.time.now + (this.kind === 'werewolf' ? 7500 : 3200);
       this.host.burst(this.x, this.y, BOSS_COLORS[this.kind], 32, 190);
       this.scene.cameras.main.shake(360, 0.009);
