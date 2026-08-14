@@ -807,10 +807,7 @@ export class GameScene extends Phaser.Scene implements PlayerHost, EnemyHost, Bo
     if (!this.minibossSpawned && elapsed >= bossThreshold) {
       this.minibossSpawned = true;
       const kind = this.bossForWave(this.wave);
-      if (this.wave === 10) {
-        this.spawnBoss(kind, false, true);
-        this.spawnBoss(kind, true, false);
-      } else this.spawnBoss(kind);
+      this.spawnBoss(kind);
     }
     if (this.minibossDefeated && this.transitionAt > 0 && time >= this.transitionAt) {
       if (this.wave < WAVES.total) this.startWave(this.wave + 1);
